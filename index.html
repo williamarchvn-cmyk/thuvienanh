@@ -1119,7 +1119,7 @@ function mountAll() {
     update() {
       const base = sortedPhotos(), list = filterByQuery(base);
       $('#vTitle').textContent = S.query ? `Kết quả cho “${S.query}”` : 'Tất cả ảnh';
-      $('#sortHint').innerHTML = base.length > 1 && !S.query ? `${icon('move', 15)} ${isMobile() ? 'Nhấn giữ một ảnh rồi kéo để sắp xếp lại' : 'Nhấn giữ chuột vào ảnh rồi kéo để sắp xếp lại'}` : '';
+      $('#sortHint').innerHTML = base.length > 1 && !S.query ? `${icon('move', 15)} ${isMobile() ? '' : ''}` : '';
       $('#vSub').innerHTML = S.query ? `${fmtNum(list.length)} ảnh · <button class="linkbtn" data-act="clearq">Xóa tìm kiếm</button>` : `${fmtNum(base.length)} ảnh`;
       $('#vEmpty').innerHTML = !base.length ? (S.loaded ? emptyBox() : `<div class="noresult">${S.loadError ? 'Chưa tải được thư viện.' : 'Đang tải thư viện…'}</div>`) : (!list.length ? `<div class="noresult">Không tìm thấy ảnh nào khớp “${esc(S.query)}”.</div>` : '');
       grid.setItems(list);
@@ -1177,7 +1177,7 @@ function mountAlbum(id) {
       if (!a) { toast('Album không còn tồn tại'); return go('#/albums'); }
       const base = albumPhotos(id), list = filterByQuery(base);
       $('#aName').textContent = a.name;
-      $('#sortHint').innerHTML = base.length > 1 && !S.query ? `${icon('move', 15)} ${isMobile() ? 'Nhấn giữ một ảnh rồi kéo để sắp xếp lại' : 'Nhấn giữ chuột vào ảnh rồi kéo để sắp xếp lại'}` : '';
+      $('#sortHint').innerHTML = base.length > 1 && !S.query ? `${icon('move', 15)} ${isMobile() ? '' : ''}` : '';
       $('#vSub').innerHTML = S.query ? `${fmtNum(list.length)}/${fmtNum(base.length)} ảnh khớp “${esc(S.query)}” · <button class="linkbtn" data-act="clearq">Xóa tìm kiếm</button>` : `${fmtNum(base.length)} ảnh`;
       $('#vEmpty').innerHTML = !base.length ? emptyBox(a.name) : (!list.length ? `<div class="noresult">Không có ảnh nào trong album khớp “${esc(S.query)}”.</div>` : '');
       grid.setItems(list);
