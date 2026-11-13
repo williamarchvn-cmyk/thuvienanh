@@ -751,7 +751,9 @@ function loadSnapshot(data) {
 }
 
 const alive = p => p && !S.pendingDelete.has(p.id);
-function sortedPhotos() { return [...S.photos.values()].filter(alive).sort((a, b) => b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0); }
+/* Thứ tự ở "Tất cả ảnh": ảnh đã kéo dùng cột position, ảnh chưa kéo dùng thời điểm tải lên (ms). Số lớn nằm trên. */
+const sortKey = p => (typeof p.position === 'number' ? p.position : Date.parse(p.created_at) || 0);
+function sortedPhotos() { return [...S.photos.values()].filter(alive).sort((a, b) => (sortKey(b) - sortKey(a)) || (b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0)); }
 function albumLinks(albumId) { return [...S.links.values()].filter(l => l.album_id === albumId).sort((a, b) => b.position - a.position); }
 function albumPhotos(albumId) {
   const temps = [...S.photos.values()].filter(p => p._status && p._albumId === albumId && alive(p)).sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -895,7 +897,9 @@ function bindGridEvents(root, grid) {
    - Thứ tự lưu ở album_photos.position (số lớn nằm trên). Chèn vào giữa 2 ảnh = lấy số ở giữa.
    ========================================================================= */
 Masonry.prototype.canSort = function () {
-  return !!this.sortAlbum && !S.query && !S.selecting && S.route.name === 'album' && S.route.id === this.sortAlbum;
+  if (S.query || S.selecting) return false;
+  if (this.sortAll) return S.route.name === 'all';
+  return !!this.sortAlbum && S.route.name === 'album' && S.route.id === this.sortAlbum;
 };
 Masonry.prototype.disarm = function () { this.armed?.el?.classList.remove('armed'); this.armed = null; };
 
@@ -989,7 +993,7 @@ function bindSort(root, grid) {
     const changed = !cancel && order.join() !== d.orig.join();
     if (cancel) grid.items = d.orig.map(id => S.photos.get(id)).filter(Boolean);
     const pend = grid.pendingList; grid.pendingList = null;
-    if (changed) await commitMove(albumId, d.id, order);
+    if (changed) await (grid.sortAll ? commitMoveAll(d.id, order) : commitMove(albumId, d.id, order));
     if (pend) grid.setItems(pend); else grid.layout();
     render();
   }
@@ -1023,6 +1027,39 @@ async function savePositions(albumId, updates) {
   } finally {
     setTimeout(() => keys.forEach(k => { const n = (posSaving.get(k) || 1) - 1; n ? posSaving.set(k, n) : posSaving.delete(k); }), 1500);
   }
+}
+/* Trang "Tất cả ảnh": lưu vị trí vào cột photos.position */
+async function commitMoveAll(id, order) {
+  const real = order.filter(pid => { const p = S.photos.get(pid); return p && !p._status; });
+  const i = real.indexOf(id); if (i < 0) return;
+  const key = pid => sortKey(S.photos.get(pid));
+  const above = i > 0 ? key(real[i - 1]) : undefined, below = i < real.length - 1 ? key(real[i + 1]) : undefined;
+  let updates;
+  if (above !== undefined && below !== undefined) {
+    if (above - below < 0.01) { const t = Date.now(); updates = real.map((pid, k) => ({ id: pid, position: t - k * 1000 })); }   // hết chỗ chèn: đánh số lại
+    else updates = [{ id, position: (above + below) / 2 }];
+  } else if (below !== undefined) updates = [{ id, position: Math.max(below + 1000, Date.now()) }];
+  else if (above !== undefined) updates = [{ id, position: above - 1000 }];
+  else return;
+  await savePhotoPositions(updates);
+}
+async function savePhotoPositions(updates) {
+  const prev = updates.map(u => ({ id: u.id, position: S.photos.get(u.id)?.position ?? null }));
+  updates.forEach(u => { if (S.photos.has(u.id)) applyPhoto(u); savingCount.set(u.id, (savingCount.get(u.id) || 0) + 1); });
+  render();
+  try { for (const part of chunks(updates, 8)) await Promise.all(part.map(u => api.updatePhoto(u.id, { position: u.position }))); }
+  catch (err) {
+    prev.forEach(u => { if (S.photos.has(u.id)) applyPhoto(u); });
+    toast(/position/i.test(err.message) ? 'Chưa lưu được thứ tự: cần chạy 1 dòng SQL trong Supabase để thêm cột "position" (xem hướng dẫn).' : 'Không lưu được thứ tự: ' + err.message, { ms: 8000 });
+  }
+  updates.forEach(u => { const n = (savingCount.get(u.id) || 1) - 1; n > 0 ? savingCount.set(u.id, n) : savingCount.delete(u.id); });
+  render();
+}
+function moveEdgeAll(id, where) {
+  const list = sortedPhotos().filter(p => !p._status); if (list.length < 2) return;
+  const first = list[0], last = list[list.length - 1];
+  if ((where === 'top' ? first : last).id === id) return toast(where === 'top' ? 'Ảnh đã ở đầu' : 'Ảnh đã ở cuối');
+  savePhotoPositions([{ id, position: where === 'top' ? Math.max(sortKey(first) + 1000, Date.now()) : sortKey(last) - 1000 }]);
 }
 /* Menu: đưa ảnh lên đầu / xuống cuối album (dùng được cả khi không tiện kéo) */
 function moveEdge(albumId, id, where) {
@@ -1074,13 +1111,15 @@ function emptyBox(albumName) {
 
 /* ----- Trang: Tất cả ảnh ----- */
 function mountAll() {
-  view.innerHTML = `<div class="view-head"><div class="tabs"><span class="tab active" id="vTitle">Tất cả ảnh</span></div><div class="sub" id="vSub"></div></div><div id="vEmpty"></div><div id="gridHost"></div>`;
+  view.innerHTML = `<div class="view-head"><div class="tabs"><span class="tab active" id="vTitle">Tất cả ảnh</span></div><div class="sub" id="vSub"></div></div><div class="sorthint" id="sortHint"></div><div id="vEmpty"></div><div id="gridHost"></div>`;
   const grid = new Masonry($('#gridHost'));
+  grid.sortAll = true; grid.root.classList.add('sortable');
   return {
     grid,
     update() {
       const base = sortedPhotos(), list = filterByQuery(base);
       $('#vTitle').textContent = S.query ? `Kết quả cho “${S.query}”` : 'Tất cả ảnh';
+      $('#sortHint').innerHTML = base.length > 1 && !S.query ? `${icon('move', 15)} ${isMobile() ? 'Nhấn giữ một ảnh rồi kéo để sắp xếp lại' : 'Nhấn giữ chuột vào ảnh rồi kéo để sắp xếp lại'}` : '';
       $('#vSub').innerHTML = S.query ? `${fmtNum(list.length)} ảnh · <button class="linkbtn" data-act="clearq">Xóa tìm kiếm</button>` : `${fmtNum(base.length)} ảnh`;
       $('#vEmpty').innerHTML = !base.length ? (S.loaded ? emptyBox() : `<div class="noresult">${S.loadError ? 'Chưa tải được thư viện.' : 'Đang tải thư viện…'}</div>`) : (!list.length ? `<div class="noresult">Không tìm thấy ảnh nào khớp “${esc(S.query)}”.</div>` : '');
       grid.setItems(list);
@@ -1158,7 +1197,7 @@ function mountSettings() {
     <div class="set-row"><button class="btn" data-act="mock500">Thêm 500 ảnh mẫu</button><button class="btn" data-act="mockremote">Giả lập ảnh mới từ thiết bị khác</button><button class="btn" data-act="mockreset">Đặt lại dữ liệu mẫu</button></div>
     <label class="switch"><input type="checkbox" id="mFail"> Giả lập lỗi tải lên (30% ảnh bị lỗi)</label>
     <label class="switch"><input type="checkbox" id="mFull"> Giả lập kho gần đầy (+900 MB)</label></div>` : ''}
-  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.1.0 · Supabase'}</div>`;
+  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.1.1 · Supabase'}</div>`;
   if (CONFIG.USE_MOCK) {
     const f = $('#mFail'), u = $('#mFull');
     f.checked = mockFlags.failRate > 0; u.checked = S.extraBytes > 0;
@@ -1334,6 +1373,9 @@ function cardMenu(id) {
       { icon: 'up', label: 'Đưa lên đầu album', run: () => moveEdge(albumId, id, 'top') },
       { icon: 'down', label: 'Đưa xuống cuối album', run: () => moveEdge(albumId, id, 'bottom') },
       { icon: 'minus', label: 'Gỡ khỏi album này', run: () => removeFromAlbumFlow([id], albumId) },
+    ] : S.route.name === 'all' && !S.query ? [
+      { icon: 'up', label: 'Đưa lên đầu', run: () => moveEdgeAll(id, 'top') },
+      { icon: 'down', label: 'Đưa xuống cuối', run: () => moveEdgeAll(id, 'bottom') },
     ] : []),
     { icon: 'download', label: 'Tải về máy', run: () => downloadPhoto(id) },
     { icon: 'select', label: 'Chọn nhiều ảnh', run: () => enterSelect(id) },
