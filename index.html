@@ -30,6 +30,21 @@ svg{display:block;flex:none}
 .brand b{font-size:20px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
 .brand b i{font-style:normal;background:linear-gradient(90deg,#4f46e5,#06b6d4);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sidebar{padding-top:22px}
+/* Dây phơi ảnh chạy ngang (thay logo khi đã có ảnh) */
+.reel{--cw:42px;--ih:31px;--pitch:12px;position:relative;flex:none;width:340px;height:66px;margin:-9px 0;border-radius:16px;background:#faf8f3;overflow:hidden;cursor:pointer;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.reel::before{content:"";position:absolute;left:0;right:0;top:9px;height:1.5px;background:#7a7d6c;opacity:.75;z-index:1}
+.reel-track{position:absolute;top:0;left:0;height:100%;display:flex;align-items:flex-start;gap:var(--pitch);padding-left:var(--pitch);will-change:transform;animation:reelmove var(--dur,30s) linear infinite}
+@keyframes reelmove{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.pol{position:relative;flex:none;width:var(--cw);margin-top:11px;padding:3px 3px 7px;background:#fff;border-radius:2px;box-shadow:0 2px 5px rgba(0,0,0,.18);transform-origin:50% -3px;animation:sway 3.2s ease-in-out infinite alternate}
+.pol img{display:block;width:100%;height:var(--ih);object-fit:cover;background:#e9e5dd}
+.pol::before{content:"";position:absolute;left:50%;top:-6px;width:5px;height:11px;margin-left:-2.5px;border-radius:2px;background:var(--pin,#c49a7f);z-index:2}
+.pol:nth-child(even){--pin:#6f7562}
+@keyframes sway{from{transform:rotate(calc(var(--r,0deg) - 2.5deg))}to{transform:rotate(calc(var(--r,0deg) + 2.5deg))}}
+.reel-wrap{display:flex;flex:none}
+.reel-wrap .brand{display:none}
+.reel-wrap.empty .reel{display:none}
+.reel-wrap.empty .brand{display:flex}
 .navbtn{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:#222;transition:background .15s}
 .navbtn:hover{background:var(--chip)}
 .navbtn.active{background:#111;color:#fff}
@@ -273,6 +288,10 @@ body.selecting .toasts{bottom:88px}
   .brand b{display:none}
   .brand{padding:0}
   .brand svg{width:38px;height:38px}
+  .reel{--cw:30px;--ih:22px;--pitch:9px;width:104px;height:50px;margin:-3px 0;border-radius:12px}
+  .reel::before{top:7px}
+  .pol{margin-top:9px;padding:2px 2px 5px}
+  .pol::before{top:-5px;width:4px;height:9px;margin-left:-2px}
   .view{padding:2px 10px 150px}
   .banner{margin:0 10px 10px}
   h1{font-size:24px}
@@ -321,7 +340,10 @@ body.selecting .toasts{bottom:88px}
 
 <div class="main">
   <header class="topbar">
-    <a class="brand" href="#/" data-go="#/" title="Thư viện ảnh" aria-label="Thư viện ảnh — về trang chủ"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#logoMark"/></svg><b>Thư viện <i>ảnh</i></b></a>
+    <div class="reel-wrap empty" id="reelWrap">
+      <div class="reel" id="reel" data-go="#/" role="link" title="Thư viện ảnh" aria-label="Thư viện ảnh — về trang chủ"><div class="reel-track" id="reelTrack"></div></div>
+      <a class="brand" href="#/" data-go="#/" title="Thư viện ảnh" aria-label="Thư viện ảnh — về trang chủ"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#logoMark"/></svg><b>Thư viện <i>ảnh</i></b></a>
+    </div>
     <label class="search" id="searchBox">
       <span class="si"></span>
       <input id="q" type="search" placeholder="Tìm theo ghi chú, tag, tên album…" autocomplete="off" enterkeyhint="search">
@@ -1194,7 +1216,7 @@ function mountSettings() {
     <div class="set-row"><button class="btn" data-act="mock500">Thêm 500 ảnh mẫu</button><button class="btn" data-act="mockremote">Giả lập ảnh mới từ thiết bị khác</button><button class="btn" data-act="mockreset">Đặt lại dữ liệu mẫu</button></div>
     <label class="switch"><input type="checkbox" id="mFail"> Giả lập lỗi tải lên (30% ảnh bị lỗi)</label>
     <label class="switch"><input type="checkbox" id="mFull"> Giả lập kho gần đầy (+900 MB)</label></div>` : ''}
-  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.1.2 · Supabase'}</div>`;
+  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.1.3 · Supabase'}</div>`;
   if (CONFIG.USE_MOCK) {
     const f = $('#mFail'), u = $('#mFull');
     f.checked = mockFlags.failRate > 0; u.checked = S.extraBytes > 0;
@@ -1221,12 +1243,29 @@ function mountSettings() {
 
 /* ---------- Vẽ lại (gộp nhiều thay đổi vào 1 khung hình) ---------- */
 let renderRaf = 0;
+/* ---------- Dây phơi ảnh trên thanh tiêu đề ---------- */
+let reelKey = '';
+function renderReel() {
+  const wrap = $('#reelWrap'), track = $('#reelTrack');
+  const pics = sortedPhotos().filter(p => !p._status).slice(0, 12);
+  const key = pics.map(p => p.id + photoUrl(p, 'thumb')).join();
+  if (key === reelKey) return; reelKey = key;
+  wrap.classList.toggle('empty', !pics.length);
+  if (!pics.length) { track.innerHTML = ''; return; }
+  let half = pics.slice(); while (half.length < 8) half = half.concat(pics);   // đủ dài để phủ kín dải
+  const R = [-6, 4, -3, 6, -5, 3, -2, 5];
+  const card = (p, i) => `<div class="pol" style="--r:${R[i % R.length]}deg;animation-delay:-${(i * 0.7) % 3.2}s"><img src="${esc(photoUrl(p, 'thumb'))}" alt="" decoding="async" draggable="false" onerror="this.style.visibility='hidden'"></div>`;
+  track.innerHTML = half.concat(half).map(card).join('');   // nhân đôi → chạy vòng liền mạch
+  track.style.setProperty('--dur', (half.length * 2.6) + 's');
+}
+
 function render() {
   cancelAnimationFrame(renderRaf);
   renderRaf = requestAnimationFrame(() => {
     current?.update();
     renderBanner();
     renderSync();
+    renderReel();
     if (S.selecting) renderSelbar();
     if (V.open) refreshViewer();
   });
