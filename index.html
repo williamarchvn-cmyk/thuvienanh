@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#ffffff">
+<title>Thư viện ảnh</title>
+<style>
+:root{
+  --bg:#fff; --fg:#111; --muted:#6f6f6f; --line:#e7e7e7; --chip:#efefef; --chip2:#e2e2e2;
+  --sel:#0b66d6; --danger:#c8241c; --warn-bg:#fff4e2; --warn-fg:#8a4a00;
+  --radius:16px; --side:76px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);overscroll-behavior-y:contain}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body.noscroll{overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+input,textarea{font:inherit;color:inherit}
+a{color:inherit}
+svg{display:block;flex:none}
+
+/* ---------- Khung chính ---------- */
+.sidebar{position:fixed;inset:0 auto 0 0;width:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 0;background:#fff;z-index:30}
+.logo{width:44px;height:44px;border-radius:14px;background:#111;color:#fff;display:grid;place-items:center;margin-bottom:18px}
+.navbtn{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:#222;transition:background .15s}
+.navbtn:hover{background:var(--chip)}
+.navbtn.active{background:#111;color:#fff}
+.sidebar .grow{flex:1}
+.main{margin-left:var(--side);min-height:100vh}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);display:flex;align-items:center;gap:12px;padding:14px 24px}
+.search{flex:1;display:flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 18px;border-radius:24px;background:var(--chip);color:#555;transition:box-shadow .15s}
+.search:focus-within{box-shadow:0 0 0 3px #cfe0f7;background:#fff}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:16px;color:var(--fg)}
+.search input::placeholder{color:#777}
+.search .clear{width:32px;height:32px;border-radius:16px;display:none;place-items:center}
+.search .clear:hover{background:var(--chip2)}
+.search.has .clear{display:grid}
+.sync{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:#1f9d55}
+.sync.syncing i{background:#e0a100;animation:pulse 1s infinite}
+.sync.offline i{background:#999}
+@keyframes pulse{50%{opacity:.3}}
+.mockpill{font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px;background:#fff1c9;color:#7a5a00;white-space:nowrap}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:20px;background:var(--chip);font-weight:600;white-space:nowrap;transition:background .15s,transform .1s}
+.btn:hover{background:var(--chip2)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:#111;color:#fff}
+.btn.primary:hover{background:#333}
+.btn.danger{background:#fbe9e8;color:var(--danger)}
+.btn.icon{width:40px;padding:0}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn.big{height:48px;padding:0 22px;border-radius:24px}
+
+.view{padding:4px 24px 140px}
+.view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 18px;flex-wrap:wrap}
+.tabs{display:flex;gap:22px}
+.tab{font-weight:600;font-size:16px;padding:6px 0;border-bottom:3px solid transparent}
+.tab.active{border-color:#111}
+.sub{color:var(--muted);font-size:14px}
+h1{font-size:28px;line-height:1.2;margin:0}
+.linkbtn{color:var(--sel);font-weight:600;font-size:14px}
+
+.banner{margin:0 24px 12px;padding:10px 14px;border-radius:12px;background:var(--warn-bg);color:var(--warn-fg);font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.banner.danger{background:#fde8e7;color:var(--danger)}
+.banner:empty{display:none}
+
+/* ---------- Lưới so le ---------- */
+.grid{position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.card{position:absolute;top:0;left:0}
+.grid.anim .card:not(.fresh){transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.card.fresh{animation:fadein .35s ease}
+@keyframes fadein{from{opacity:0}}
+.thumb{position:relative;border-radius:var(--radius);overflow:hidden;cursor:zoom-in;transition:box-shadow .15s}
+.thumb img{display:block;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .35s}
+.thumb img.loaded{opacity:1}
+.thumb::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.22);opacity:0;transition:opacity .15s;pointer-events:none}
+.chk{position:absolute;top:10px;left:10px;width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.25);color:transparent;display:grid;place-items:center;opacity:0;transition:opacity .15s,background .15s;z-index:2}
+.qa{position:absolute;top:10px;right:10px;height:34px;padding:0 14px;border-radius:17px;background:#111;color:#fff;font-weight:600;font-size:13px;opacity:0;transition:opacity .15s;z-index:2}
+.qa:hover{background:#333}
+@media (hover:hover){
+  .card:hover .thumb::after{opacity:1}
+  .card:hover .chk,.card:hover .qa{opacity:1}
+}
+body.selecting .chk{opacity:1}
+body.selecting .qa{display:none}
+body.selecting .thumb{cursor:pointer}
+.card.selected .thumb{box-shadow:0 0 0 3px var(--sel)}
+.card.selected .chk{background:var(--sel);border-color:var(--sel);color:#fff;opacity:1}
+.card.selected .thumb img{transform:scale(.96);border-radius:12px}
+.thumb img{transition:opacity .35s,transform .15s}
+.foot{height:30px;display:flex;justify-content:flex-end;align-items:center}
+.more{width:36px;height:26px;border-radius:13px;display:grid;place-items:center;color:#333}
+.more:hover{background:var(--chip)}
+.up{position:absolute;inset:0;display:none;flex-direction:column;justify-content:flex-end;gap:6px;padding:10px;background:rgba(255,255,255,.5);z-index:3;font-size:12px;font-weight:600}
+.up-bar{height:6px;border-radius:3px;background:rgba(0,0,0,.15);overflow:hidden}
+.up-bar i{display:block;height:100%;width:0;background:#111;transition:width .2s}
+.card.uploading .up{display:flex}
+.card.error .up{display:flex;background:rgba(200,36,28,.82);color:#fff;justify-content:center;align-items:center;text-align:center;cursor:pointer}
+.card.error .up-bar{display:none}
+
+.empty{max-width:560px;margin:48px auto;padding:48px 24px;border:2px dashed #cfcfcf;border-radius:24px;text-align:center;color:var(--muted)}
+.empty h2{color:var(--fg);margin:12px 0 6px;font-size:20px}
+.empty .ic{width:64px;height:64px;border-radius:20px;background:var(--chip);display:grid;place-items:center;margin:0 auto;color:#333}
+.empty .btn{margin-top:16px}
+.noresult{text-align:center;color:var(--muted);padding:64px 16px}
+
+/* ---------- Album ---------- */
+.albums{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:24px 20px}
+.acard{cursor:pointer;position:relative}
+.collage{aspect-ratio:3/2;border-radius:var(--radius);overflow:hidden;display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:2px;background:#fff}
+.collage>div{background:var(--chip);overflow:hidden}
+.collage>div:first-child{grid-row:span 2}
+.collage img{width:100%;height:100%;object-fit:cover;display:block}
+.acard:hover .collage{filter:brightness(.92)}
+.acard h3{font-size:16px;margin:10px 0 0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acard .amore{position:absolute;top:8px;right:8px;width:34px;height:34px;border-radius:17px;background:rgba(255,255,255,.92);display:grid;place-items:center;opacity:0;transition:opacity .15s}
+@media (hover:hover){.acard:hover .amore{opacity:1}}
+@media (hover:none){.acard .amore{opacity:1}}
+.acard.new .collage{display:grid;place-items:center;grid-template-columns:1fr;grid-template-rows:1fr;border:2px dashed #cfcfcf;background:#fafafa;color:#333}
+.album-head{text-align:center;margin:8px 0 26px}
+.album-head .back{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:14px;text-decoration:none;margin-bottom:8px}
+.album-head .back:hover{color:var(--fg)}
+.album-head .row{display:flex;gap:8px;justify-content:center;margin-top:14px}
+
+/* ---------- Cài đặt ---------- */
+.set-card{max-width:720px;border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin-bottom:16px}
+.set-card h2{font-size:17px;margin:0 0 4px}
+.set-card p{margin:4px 0 12px;color:var(--muted);font-size:14px}
+.meter{height:12px;border-radius:6px;background:var(--chip);overflow:hidden;margin:10px 0 8px}
+.meter i{display:block;height:100%;background:#111;border-radius:6px;transition:width .3s}
+.meter.warn i{background:#e08a00}.meter.full i{background:var(--danger)}
+.big-num{font-size:26px;font-weight:700}
+.set-row{display:flex;gap:8px;flex-wrap:wrap}
+.badge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:10px;background:var(--chip);color:#444;margin-left:6px}
+.switch{display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 0}
+.switch input{width:18px;height:18px}
+
+/* ---------- Thanh dưới (mobile) ---------- */
+.bottomnav{display:none}
+
+/* ---------- Thanh chọn nhiều ---------- */
+.selbar{position:fixed;left:50%;bottom:24px;transform:translate(-50%,140%);z-index:40;background:#111;color:#fff;border-radius:28px;padding:6px;display:flex;align-items:center;gap:2px;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none}
+.selbar.show{transform:translate(-50%,0)}
+.selbar:not(.show){visibility:hidden;opacity:0;transition:transform .25s,opacity .2s,visibility 0s .25s}
+.selbar button{display:flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:20px;font-weight:600;font-size:14px;white-space:nowrap}
+.selbar button:hover{background:rgba(255,255,255,.14)}
+.selbar .danger{color:#ff8a83}
+.selbar .sb-n{padding:0 10px 0 4px;font-weight:700;white-space:nowrap}
+.selbar .sb-x{width:40px;padding:0;justify-content:center}
+
+/* ---------- Thông báo ---------- */
+.toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:95;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:max-content;max-width:calc(100vw - 24px)}
+body.selecting .toasts{bottom:88px}
+.toast{pointer-events:auto;background:#111;color:#fff;border-radius:14px;padding:12px 16px;display:flex;gap:14px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.2);font-size:14px;animation:toastin .25s ease}
+.toast button{color:#8ec2ff;font-weight:700}
+@keyframes toastin{from{opacity:0;transform:translateY(10px)}}
+
+/* ---------- Bảng tải lên ---------- */
+.uppanel{position:fixed;right:24px;bottom:24px;width:360px;max-height:50vh;z-index:45;background:#fff;border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.18);display:none;flex-direction:column;overflow:hidden}
+.uppanel.show{display:flex}
+.uphead{display:flex;align-items:center;gap:8px;padding:12px 12px 12px 16px;font-weight:700;border-bottom:1px solid var(--line)}
+.uphead span{flex:1}
+.uphead button{width:32px;height:32px;border-radius:16px;display:grid;place-items:center}
+.uphead button:hover{background:var(--chip)}
+.uplist{overflow:auto;padding:6px 0}
+.uppanel.min .uplist{display:none}
+.upitem{padding:8px 16px;font-size:13px}
+.upitem .r1{display:flex;justify-content:space-between;gap:8px}
+.upitem .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.upitem .st{color:var(--muted);white-space:nowrap}
+.upitem.err .st{color:var(--danger)}
+.upitem.ok .st{color:#1f8a4c}
+.upitem .r2{color:var(--muted);font-size:12px;margin-top:2px;display:flex;justify-content:space-between}
+.upitem .bar{height:4px;border-radius:2px;background:var(--chip);margin-top:6px;overflow:hidden}
+.upitem .bar i{display:block;height:100%;background:#111;transition:width .2s}
+.upitem .retry{color:var(--sel);font-weight:700}
+
+/* ---------- Lớp thả ảnh ---------- */
+.drop{position:fixed;inset:0;z-index:90;display:none;place-items:center;background:rgba(255,255,255,.88);backdrop-filter:blur(2px)}
+.drop.show{display:grid}
+.drop .box{width:min(560px,86vw);padding:56px 24px;border:3px dashed #111;border-radius:28px;text-align:center;background:#fff;pointer-events:none}
+.drop h2{margin:14px 0 4px;font-size:24px}
+.drop .ic{width:72px;height:72px;border-radius:24px;background:#111;color:#fff;display:grid;place-items:center;margin:0 auto}
+
+/* ---------- Xem ảnh lớn ---------- */
+.viewer{position:fixed;inset:0;z-index:60;background:#0e0e0e;display:none}
+.viewer.open{display:flex}
+.v-stage{position:relative;flex:1;min-width:0;overflow:hidden;touch-action:none}
+/* Ảnh luôn nằm gọn trong khung, giữ đúng tỉ lệ, không bị cắt */
+.v-img{position:absolute;top:72px;left:76px;width:calc(100% - 152px);height:calc(100% - 96px);object-fit:contain;user-select:none;-webkit-user-drag:none;transition:transform .25s ease, opacity .2s}
+.v-btn{position:absolute;width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;transition:background .15s;z-index:2}
+.v-btn:hover{background:rgba(255,255,255,.25)}
+.v-close{top:16px;left:16px}
+.v-prev{left:16px;top:50%;margin-top:-22px}
+.v-next{right:16px;top:50%;margin-top:-22px}
+.v-btn[disabled]{opacity:.25;pointer-events:none}
+.v-count{position:absolute;top:26px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:14px;font-weight:600}
+.v-panel{width:380px;flex:none;background:#fff;overflow:auto;padding:20px 22px 40px}
+.v-actions{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.f-label{display:block;font-size:13px;font-weight:700;color:#444;margin:18px 0 6px}
+.f-in{width:100%;border:1px solid #d6d6d6;border-radius:12px;padding:10px 12px;outline:0;font-size:15px;background:#fff;resize:vertical}
+.f-in:focus{border-color:#111}
+.tagbox{display:flex;flex-wrap:wrap;gap:6px;border:1px solid #d6d6d6;border-radius:12px;padding:8px;cursor:text}
+.tagbox:focus-within{border-color:#111}
+.tagbox input{flex:1;min-width:120px;border:0;outline:0;padding:4px;font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--chip);border-radius:14px;padding:4px 6px 4px 11px;font-size:13px;font-weight:600}
+.chip .nm{cursor:pointer}
+.chip .nm:hover{text-decoration:underline}
+.chip button{width:20px;height:20px;border-radius:10px;display:grid;place-items:center;color:#555}
+.chip button:hover{background:var(--chip2)}
+.chip.add{padding:4px 11px;cursor:pointer;background:#fff;border:1px dashed #bbb}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sugg button{font-size:13px;padding:3px 10px;border-radius:12px;border:1px solid var(--line)}
+.sugg button:hover{background:var(--chip)}
+.row{display:flex;gap:8px;align-items:center}
+.v-albums{display:flex;flex-wrap:wrap;gap:6px}
+.v-info{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.7;word-break:break-all}
+.v-saved{font-size:12px;color:var(--muted);height:16px;margin-top:6px}
+
+/* ---------- Hộp thoại ---------- */
+.sheet-bg{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.42);display:grid;place-items:center;animation:bgin .2s ease}
+@keyframes bgin{from{opacity:0}}
+.sheet{width:min(460px,92vw);max-height:82vh;overflow:auto;background:#fff;border-radius:22px;padding:22px;animation:sheetin .25s cubic-bezier(.2,.8,.2,1)}
+@keyframes sheetin{from{transform:translateY(16px);opacity:0}}
+.sheet h3{margin:0 0 6px;font-size:20px}
+.sheet p{margin:0 0 14px;color:var(--muted)}
+.sheet .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.alist{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+.aitem{display:flex;align-items:center;gap:12px;padding:8px;border-radius:12px;text-align:left;width:100%}
+.aitem:hover{background:var(--chip)}
+.aitem .cv{width:48px;height:48px;border-radius:10px;background:var(--chip);overflow:hidden;flex:none}
+.aitem .cv img{width:100%;height:100%;object-fit:cover}
+.aitem b{display:block}
+.aitem small{color:var(--muted)}
+.aitem.has{opacity:.5}
+
+/* ---------- Menu ---------- */
+.menu{position:fixed;z-index:80;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.2);padding:6px;min-width:220px;animation:bgin .12s ease}
+.menu button{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:10px;text-align:left;font-weight:600;font-size:14px}
+.menu button:hover{background:var(--chip)}
+.menu .danger{color:var(--danger)}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+
+.ptr{position:fixed;top:0;left:50%;z-index:25;width:40px;height:40px;margin-left:-20px;border-radius:20px;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.2);display:grid;place-items:center;opacity:0;transform:translateY(-50px);pointer-events:none}
+.ptr.ready svg{color:var(--sel)}
+.ptr.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Điện thoại ---------- */
+@media (max-width:767px){
+  .sidebar{display:none}
+  .main{margin-left:0}
+  .topbar{padding:10px 12px;gap:8px}
+  .search{height:44px}
+  .sync span,.mockpill,.topbar .btn{display:none}
+  .view{padding:2px 10px 150px}
+  .banner{margin:0 10px 10px}
+  h1{font-size:24px}
+  .foot{height:26px}
+  .albums{grid-template-columns:repeat(2,1fr);gap:16px 10px}
+  .bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:35;background:rgba(255,255,255,.97);border-top:1px solid var(--line);height:calc(62px + var(--safe-b));padding-bottom:var(--safe-b);justify-content:space-around;align-items:center}
+  .bottomnav .navbtn{width:56px;height:46px}
+  .bottomnav .plus{background:#111;color:#fff;width:52px;height:40px;border-radius:14px}
+  .selbar{bottom:calc(72px + var(--safe-b));left:8px;right:8px;transform:translateY(200%);max-width:none}
+  .selbar.show{transform:none}
+  .selbar button span{display:none}
+  .selbar button{padding:0 12px}
+  .selbar .sb-n{flex:1}
+  .toasts{bottom:calc(76px + var(--safe-b))}
+  body.selecting .toasts{bottom:calc(132px + var(--safe-b))}
+  .uppanel{left:8px;right:8px;width:auto;bottom:calc(72px + var(--safe-b));max-height:42vh}
+  .viewer{flex-direction:column;overflow-y:auto;overscroll-behavior:contain}
+  .v-stage{flex:none;height:72vh;height:72svh}
+  .v-img{top:64px;left:0;width:100%;height:calc(100% - 90px)}
+  .v-prev,.v-next{display:none}
+  .v-close{top:12px;left:12px}
+  .v-count{top:22px}
+  .v-panel{width:auto;flex:none;border-radius:22px 22px 0 0;margin-top:-18px;position:relative;min-height:60vh;padding:16px 16px 60px}
+  .v-panel::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:#ccc;margin:0 auto 12px}
+  .sheet-bg{place-items:end stretch}
+  .sheet{width:100%;max-height:85vh;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + var(--safe-b))}
+  .album-head{margin-bottom:18px}
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar" aria-label="Điều hướng">
+  <div class="logo" title="Thư viện ảnh"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="11" rx="2.5"/><rect x="13" y="3" width="8" height="7" rx="2.5"/><rect x="3" y="16" width="8" height="5" rx="2"/><rect x="13" y="12" width="8" height="9" rx="2.5"/></svg></div>
+  <button class="navbtn" data-go="#/" title="Tất cả ảnh" aria-label="Tất cả ảnh"></button>
+  <button class="navbtn" data-go="#/albums" title="Album" aria-label="Album"></button>
+  <button class="navbtn" data-act="upload" title="Tải ảnh lên" aria-label="Tải ảnh lên"></button>
+  <div class="grow"></div>
+  <button class="navbtn" data-go="#/settings" title="Cài đặt" aria-label="Cài đặt"></button>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <label class="search" id="searchBox">
+      <span class="si"></span>
+      <input id="q" type="search" placeholder="Tìm theo ghi chú, tag, tên album…" autocomplete="off" enterkeyhint="search">
+      <button class="clear" id="qClear" type="button" aria-label="Xóa tìm kiếm"></button>
+    </label>
+    <span class="mockpill" id="mockPill">Dữ liệu mẫu</span>
+    <div class="sync" id="sync"><i></i><span>Đã đồng bộ</span></div>
+    <button class="btn primary" data-act="upload" id="topUpload"></button>
+  </header>
+  <div class="banner" id="banner"></div>
+  <main class="view" id="view"></main>
+</div>
+
+<nav class="bottomnav" aria-label="Điều hướng">
+  <button class="navbtn" data-go="#/" aria-label="Tất cả ảnh"></button>
+  <button class="navbtn" data-go="#/albums" aria-label="Album"></button>
+  <button class="navbtn plus" data-act="upload" aria-label="Tải ảnh lên"></button>
+  <button class="navbtn" data-go="#/settings" aria-label="Cài đặt"></button>
+</nav>
+
+<input type="file" id="fileInput" accept="image/*" multiple hidden>
+<div class="drop" id="drop"><div class="box"><div class="ic"></div><h2>Thả ảnh vào đây</h2><div class="sub" id="dropSub"></div></div></div>
+<div class="selbar" id="selbar"></div>
+<div class="viewer" id="viewer"></div>
+<div id="layerRoot"></div>
+<div class="uppanel" id="uppanel"></div>
+<div class="toasts" id="toasts"></div>
+<div class="ptr" id="ptr"></div>
+
+<script>
+/* =========================================================================
+   THƯ VIỆN ẢNH — v1.0.1 (MVP + sao lưu)
+   Chưa điền SUPABASE_URL/KEY trong CONFIG → tự chạy dữ liệu giả lập.
+   - Toàn bộ dữ liệu đi qua đối tượng `api`. Giai đoạn backend chỉ cần viết lại
+     các hàm trong `api` bằng Supabase (cùng tên, cùng dữ liệu vào/ra).
+   - Dữ liệu dùng đúng tên cột của schema (Bước 3 trong kế hoạch).
+   - Trường bắt đầu bằng dấu _ (vd _status, _local) chỉ tồn tại trên máy, không lưu DB.
+   ========================================================================= */
+
+const CONFIG = {
+  // ↓↓↓ ĐIỀN 2 DÒNG NÀY (Supabase → Project Settings → API). Để trống = chạy dữ liệu giả lập.
+  SUPABASE_URL: 'https://ehpqutjgfyxrqxjwqhzw.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_6DE4cSouoP8TyDVBPO1KQA_3jlzc5tz',
+  // ↑↑↑
+  BUCKET: 'photos',
+  STORAGE_LIMIT: 1e9,             // 1 GB gói Free
+  WARN_AT: 800e6,                 // cảnh báo
+  BLOCK_AT: 950e6,                // chặn tải lên
+  FULL_MAX: 2000, FULL_Q: 0.8,    // ảnh lớn: cạnh dài tối đa, chất lượng WebP
+  THUMB_W: 600,  THUMB_Q: 0.75,   // thumbnail
+  UPLOAD_CONCURRENCY: 3,
+  UNDO_MS: 5000,
+};
+CONFIG.SUPABASE_URL = CONFIG.SUPABASE_URL.trim().replace(/\/+$/, '');
+CONFIG.SUPABASE_ANON_KEY = CONFIG.SUPABASE_ANON_KEY.trim();
+CONFIG.USE_MOCK = !(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
+const SB_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';
+const JSZIP_JS = 'https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js';
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Không tải được thư viện (kiểm tra mạng): ' + src.split('/npm/')[1])); document.head.appendChild(s); });
+}
+
+/* ---------------- Tiện ích ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36));
+const nowIso = () => new Date().toISOString();
+const clone = o => JSON.parse(JSON.stringify(o));
+const isMobile = () => matchMedia('(max-width: 767px)').matches;
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+function fmtBytes(n) {
+  if (n < 1e6) return Math.max(1, Math.round(n / 1e3)) + ' KB';
+  if (n < 1e9) return (n / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' MB';
+  return (n / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' GB';
+}
+const fmtNum = n => n.toLocaleString('vi-VN');
+const fmtDate = iso => new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+// Bỏ dấu tiếng Việt để tìm kiếm không dấu
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[đĐ]/g, 'd').toLowerCase().trim();
+const normTag = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+const SOFT = ['#e9e5dd', '#dfe7e1', '#e5e2eb', '#ebe2da', '#dde4ea', '#e7e7e0', '#ece2e2', '#e2e9e9'];
+function softColor(id) { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) | 0; return SOFT[Math.abs(h) % SOFT.length]; }
+
+/* ---------------- Icon ---------------- */
+const P = {
+  home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v11h14V9"/>',
+  albums: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  settings: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  more: '<circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  left: '<path d="m15 5-7 7 7 7"/>',
+  right: '<path d="m9 5 7 7-7 7"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+  download: '<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>',
+  albumAdd: '<rect x="3" y="5" width="14" height="14" rx="3"/><path d="M21 9v10a2 2 0 0 1-2 2H8"/><path d="M10 9v6M7 12h6"/>',
+  move: '<path d="M4 12h11M11 7l5 5-5 5"/><path d="M20 4v16"/>',
+  minus: '<rect x="3" y="5" width="14" height="14" rx="3"/><path d="M7 12h6"/>',
+  link: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
+  star: '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v5h16v-5"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
+  select: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  open: '<path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/>',
+};
+const icon = (n, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
+
+/* =========================================================================
+   DỮ LIỆU GIẢ LẬP + API GIẢ LẬP
+   ========================================================================= */
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const R = rng(20261113);
+const pick = a => a[Math.floor(R() * a.length)];
+const MOCK_TAGS = ['nội thất', 'bảng màu', 'phong cảnh', 'góc làm việc', 'kệ trưng bày', 'bao bì', 'kiến trúc', 'ánh sáng', 'tối giản', 'vật liệu', 'cây xanh', 'showroom'];
+const MOCK_NOTES = ['Tham khảo phối màu cho phòng khách', 'Ý tưởng kệ trưng bày sản phẩm', 'Ánh sáng tự nhiên rất đẹp, lưu lại', 'Bố cục tối giản, nhiều khoảng trống', 'Mẫu bao bì giấy kraft', 'Góc làm việc gọn gàng', 'Màu xanh rêu kết hợp gỗ sáng', 'Chụp màn hình bảng màu để dùng sau'];
+const MOCK_RATIOS = [[2, 3], [3, 4], [4, 5], [1, 1], [3, 2], [9, 16], [4, 3], [2, 3], [3, 5], [2, 3]];
+const MOCK_ALBUMS = ['Nội thất', 'Bảng màu', 'Phong cảnh', 'Bao bì & trưng bày', 'Góc làm việc'];
+const MOCK_URLS = {};   // id -> {thumb, full}
+let mockSeq = 0;
+
+function makeMockPhoto(createdAt) {
+  const i = ++mockSeq;
+  const [a, b] = pick(MOCK_RATIOS);
+  const w = a >= b ? 2000 : Math.round(2000 * a / b);
+  const h = a >= b ? Math.round(2000 * b / a) : 2000;
+  const id = uid();
+  MOCK_URLS[id] = {
+    thumb: `https://picsum.photos/seed/tva${i}/600/${Math.round(600 * h / w)}`,
+    full: `https://picsum.photos/seed/tva${i}/${Math.round(w * .6)}/${Math.round(h * .6)}`,
+  };
+  const tags = [...new Set(Array.from({ length: Math.floor(R() * 4) }, () => pick(MOCK_TAGS)))];
+  return {
+    id, full_path: `full/${id}.webp`, thumb_path: `thumb/${id}.webp`, width: w, height: h,
+    size_bytes: Math.round(260e3 + R() * 220e3),
+    original_name: R() < .7 ? `IMG_${20260000 + i}.jpg` : '',
+    note: R() < .45 ? pick(MOCK_NOTES) : '', tags,
+    source_url: R() < .3 ? `https://example.com/anh-tham-khao-${i}` : null,
+    created_at: createdAt, updated_at: createdAt, deleted_at: null,
+  };
+}
+
+const mockDb = { photos: [], albums: [], links: [] };
+const mockSubs = [];
+const mockFlags = { failRate: 0 };
+
+function seedMock(count) {
+  const t0 = Date.now();
+  for (let k = 0; k < count; k++) mockDb.photos.push(makeMockPhoto(new Date(t0 - k * 3.3e6 - R() * 2e6).toISOString()));
+  if (!mockDb.albums.length) {
+    MOCK_ALBUMS.forEach((name, k) => mockDb.albums.push({ id: uid(), name, cover_photo_id: null, created_at: new Date(t0 - k * 864e5).toISOString(), updated_at: nowIso() }));
+  }
+  const pos = {};
+  for (const p of mockDb.photos.slice(-count).reverse()) {
+    const n = R() < .25 ? 0 : R() < .75 ? 1 : 2;
+    const chosen = new Set(Array.from({ length: n }, () => pick(mockDb.albums).id));
+    for (const aid of chosen) {
+      pos[aid] = (pos[aid] ?? Math.max(0, ...mockDb.links.filter(l => l.album_id === aid).map(l => l.position))) + 1000;
+      mockDb.links.push({ album_id: aid, photo_id: p.id, position: pos[aid], added_at: p.created_at });
+    }
+  }
+}
+if (CONFIG.USE_MOCK) seedMock(120);
+
+/* Mọi thao tác dữ liệu của app đi qua `api`: mockApi (giả lập) hoặc realApi (Supabase), cùng tên hàm, cùng dữ liệu vào/ra. */
+const mockApi = {
+  /** Tải toàn bộ ảnh, album, liên kết album–ảnh */
+  async listAll() { await sleep(250); return clone(mockDb); },
+
+  /** Tải ảnh lớn + thumbnail lên kho rồi ghi 1 dòng photos. onProgress(0..1) */
+  async uploadPhoto({ id, fullBlob, thumbBlob, row }, onProgress) {
+    const steps = 6 + Math.floor(Math.random() * 6);
+    for (let i = 1; i <= steps; i++) {
+      await sleep(70 + Math.random() * 90);
+      onProgress(i / steps);
+      if (i === Math.ceil(steps / 2) && Math.random() < mockFlags.failRate) throw new Error('Mất kết nối khi tải lên');
+    }
+    MOCK_URLS[id] = { thumb: URL.createObjectURL(thumbBlob), full: URL.createObjectURL(fullBlob) };
+    mockDb.photos.unshift(clone(row));
+    return clone(row);
+  },
+  async updatePhoto(id, patch) {
+    await sleep(120);
+    const p = mockDb.photos.find(x => x.id === id); if (!p) throw new Error('Ảnh không còn tồn tại');
+    Object.assign(p, clone(patch), { updated_at: nowIso() }); return clone(p);
+  },
+  async deletePhotos(ids) {
+    await sleep(200);
+    const set = new Set(ids);
+    mockDb.photos = mockDb.photos.filter(p => !set.has(p.id));
+    mockDb.links = mockDb.links.filter(l => !set.has(l.photo_id));
+    mockDb.albums.forEach(a => { if (set.has(a.cover_photo_id)) a.cover_photo_id = null; });
+  },
+  async createAlbum(name) {
+    await sleep(150);
+    const a = { id: uid(), name, cover_photo_id: null, created_at: nowIso(), updated_at: nowIso() };
+    mockDb.albums.push(a); return clone(a);
+  },
+  async updateAlbum(id, patch) {
+    await sleep(120);
+    const a = mockDb.albums.find(x => x.id === id); if (!a) throw new Error('Album không còn tồn tại');
+    Object.assign(a, patch, { updated_at: nowIso() }); return clone(a);
+  },
+  async deleteAlbum(id) {
+    await sleep(150);
+    mockDb.albums = mockDb.albums.filter(a => a.id !== id);
+    mockDb.links = mockDb.links.filter(l => l.album_id !== id);
+  },
+  /** Thêm ảnh vào album; trả về các liên kết mới (bỏ qua ảnh đã có) */
+  async addToAlbum(albumId, photoIds) {
+    await sleep(150);
+    let max = Math.max(0, ...mockDb.links.filter(l => l.album_id === albumId).map(l => l.position));
+    const out = [];
+    for (const pid of photoIds) {
+      if (mockDb.links.some(l => l.album_id === albumId && l.photo_id === pid)) continue;
+      const l = { album_id: albumId, photo_id: pid, position: (max += 1000), added_at: nowIso() };
+      mockDb.links.push(l); out.push(clone(l));
+    }
+    return out;
+  },
+  async removeFromAlbum(albumId, photoIds) {
+    await sleep(150);
+    const set = new Set(photoIds);
+    mockDb.links = mockDb.links.filter(l => !(l.album_id === albumId && set.has(l.photo_id)));
+  },
+  /** Xóa file trong kho không còn dòng photos tương ứng; trả về số file đã xóa */
+  async cleanupOrphans() { await sleep(900); return 0; },
+  /** Nhận thay đổi từ thiết bị khác: handler({table, type:'INSERT'|'UPDATE'|'DELETE', row, old}) */
+  subscribe(handler, onStatus) { mockSubs.push(handler); onStatus?.('SUBSCRIBED'); },
+};
+
+/* =========================================================================
+   API THẬT — SUPABASE
+   ========================================================================= */
+let sb = null;   // Supabase client, tạo trong init()
+const unwrap = ({ data, error }) => { if (error) throw new Error(error.message || String(error)); return data; };
+const chunks = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+
+/** Supabase trả tối đa 1.000 dòng mỗi lần → tải theo trang */
+async function fetchAllRows(table, orders) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    let q = sb.from(table).select('*');
+    for (const [col, asc] of orders) q = q.order(col, { ascending: asc });
+    const rows = unwrap(await q.range(from, from + 999));
+    out.push(...rows);
+    if (rows.length < 1000) return out;
+  }
+}
+/** Tải 1 file lên kho bằng XHR để có % tiến độ */
+function uploadFile(path, blob, onProgress) {
+  return new Promise((res, rej) => {
+    const x = new XMLHttpRequest();
+    x.open('POST', `${CONFIG.SUPABASE_URL}/storage/v1/object/${CONFIG.BUCKET}/${path}`);
+    x.setRequestHeader('apikey', CONFIG.SUPABASE_ANON_KEY);
+    x.setRequestHeader('Authorization', 'Bearer ' + CONFIG.SUPABASE_ANON_KEY);
+    x.setRequestHeader('x-upsert', 'false');
+    x.setRequestHeader('cache-control', 'max-age=31536000');
+    x.setRequestHeader('content-type', 'image/webp');
+    x.timeout = 120000;
+    x.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    x.onload = () => {
+      if (x.status >= 200 && x.status < 300) return res();
+      let msg = x.responseText; try { const j = JSON.parse(msg); msg = j.message || j.error || msg; } catch {}
+      if (/duplicate|already exists/i.test(msg)) return res();   // thử lại sau khi file đã lên → coi như xong
+      rej(new Error(`Kho ảnh báo lỗi ${x.status}: ${msg}`));
+    };
+    x.onerror = () => rej(new Error('Mất kết nối khi tải lên'));
+    x.ontimeout = () => rej(new Error('Tải lên quá lâu, hãy thử lại'));
+    x.send(blob);
+  });
+}
+const pathsOf = id => [`full/${id}.webp`, `thumb/${id}.webp`];
+
+const realApi = {
+  async listAll() {
+    const [photos, albums, links] = await Promise.all([
+      fetchAllRows('photos', [['created_at', false], ['id', true]]),
+      fetchAllRows('albums', [['created_at', true], ['id', true]]),
+      fetchAllRows('album_photos', [['album_id', true], ['photo_id', true]]),
+    ]);
+    return { photos, albums, links };
+  },
+  async uploadPhoto({ fullBlob, thumbBlob, row }, onProgress) {
+    const tw = thumbBlob.size / (thumbBlob.size + fullBlob.size);
+    await uploadFile(row.thumb_path, thumbBlob, p => onProgress(p * tw * .95));
+    await uploadFile(row.full_path, fullBlob, p => onProgress((tw + p * (1 - tw)) * .95));
+    try {
+      const saved = unwrap(await sb.from('photos').upsert(row, { onConflict: 'id' }).select().single());
+      onProgress(1); return saved;
+    } catch (err) {
+      await sb.storage.from(CONFIG.BUCKET).remove([row.thumb_path, row.full_path]).catch(() => {});
+      throw err;
+    }
+  },
+  async updatePhoto(id, patch) {
+    const rows = unwrap(await sb.from('photos').update(patch).eq('id', id).select());
+    if (!rows.length) throw new Error('Ảnh không còn tồn tại');
+    return rows[0];
+  },
+  async deletePhotos(ids) {
+    for (const part of chunks(ids, 100)) {
+      unwrap(await sb.from('photos').delete().in('id', part));
+      // Xóa file; nếu lỗi thì file thừa sẽ được dọn bằng nút "Dọn file thừa"
+      await sb.storage.from(CONFIG.BUCKET).remove(part.flatMap(pathsOf)).catch(() => {});
+    }
+  },
+  async createAlbum(name) { return unwrap(await sb.from('albums').insert({ name }).select().single()); },
+  async updateAlbum(id, patch) {
+    const rows = unwrap(await sb.from('albums').update(patch).eq('id', id).select());
+    if (!rows.length) throw new Error('Album không còn tồn tại');
+    return rows[0];
+  },
+  async deleteAlbum(id) { unwrap(await sb.from('albums').delete().eq('id', id)); },
+  async addToAlbum(albumId, photoIds) {
+    const top = unwrap(await sb.from('album_photos').select('position').eq('album_id', albumId).order('position', { ascending: false }).limit(1));
+    let max = top[0]?.position || 0;
+    const rows = photoIds.map(pid => ({ album_id: albumId, photo_id: pid, position: (max += 1000) }));
+    const out = [];
+    for (const part of chunks(rows, 200)) out.push(...unwrap(await sb.from('album_photos').upsert(part, { onConflict: 'album_id,photo_id', ignoreDuplicates: true }).select()));
+    return out;
+  },
+  async removeFromAlbum(albumId, photoIds) {
+    for (const part of chunks(photoIds, 100)) unwrap(await sb.from('album_photos').delete().eq('album_id', albumId).in('photo_id', part));
+  },
+  async cleanupOrphans() {
+    const ids = new Set((await fetchAllRows('photos', [['id', true]])).map(p => p.id));
+    const cutoff = Date.now() - 10 * 60e3;   // bỏ qua file mới (có thể đang tải lên dở)
+    const stale = [];
+    for (const folder of ['full', 'thumb']) {
+      for (let offset = 0; ; offset += 1000) {
+        const list = unwrap(await sb.storage.from(CONFIG.BUCKET).list(folder, { limit: 1000, offset, sortBy: { column: 'name', order: 'asc' } }));
+        for (const f of list) {
+          const id = f.name.replace(/\.webp$/, '');
+          if (f.id && !ids.has(id) && (!f.created_at || Date.parse(f.created_at) < cutoff)) stale.push(`${folder}/${f.name}`);
+        }
+        if (list.length < 1000) break;
+      }
+    }
+    for (const part of chunks(stale, 100)) unwrap(await sb.storage.from(CONFIG.BUCKET).remove(part));
+    return stale.length;
+  },
+  subscribe(handler, onStatus) {
+    const ch = sb.channel('thuvienanh-db');
+    for (const table of ['photos', 'albums', 'album_photos']) {
+      ch.on('postgres_changes', { event: '*', schema: 'public', table }, p => handler({ table, type: p.eventType, row: p.new, old: p.old }));
+    }
+    ch.subscribe(status => onStatus?.(status));
+  },
+};
+
+const api = CONFIG.USE_MOCK ? mockApi : realApi;
+
+/** Tạo URL ảnh. Khi chuyển kho sang Cloudflare R2 chỉ cần sửa hàm này. */
+function photoUrl(p, kind) {
+  if (p._local) return p._local[kind];
+  if (CONFIG.USE_MOCK) return MOCK_URLS[p.id]?.[kind] || '';
+  const path = kind === 'thumb' ? p.thumb_path : p.full_path;
+  return `${CONFIG.SUPABASE_URL}/storage/v1/object/public/${CONFIG.BUCKET}/${path}`;
+}
+function fallbackImg(p) {
+  const c = softColor(p.id);
+  return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${p.width} ${p.height}"><rect width="100%" height="100%" fill="${c}"/></svg>`);
+}
+
+/* =========================================================================
+   TRẠNG THÁI
+   ========================================================================= */
+const S = {
+  photos: new Map(), albums: new Map(), links: new Map(),   // links: "albumId|photoId" -> link
+  pendingDelete: new Set(), selected: new Set(), selecting: false,
+  query: '', route: { name: 'all' }, uploads: [], sync: 'ok', extraBytes: 0,
+  loaded: false, loadError: null,
+};
+const linkKey = (a, p) => a + '|' + p;
+const recentDel = new Map();   // id ảnh vừa xóa -> thời điểm
+
+function applyPhoto(row) { const o = S.photos.get(row.id); S.photos.set(row.id, o ? { ...o, ...row } : row); }
+function applyAlbum(row) { const o = S.albums.get(row.id); S.albums.set(row.id, o ? { ...o, ...row } : row); }
+function applyLink(l) { S.links.set(linkKey(l.album_id, l.photo_id), l); }
+function removeLink(albumId, photoId) { S.links.delete(linkKey(albumId, photoId)); }
+function removePhotoLocal(id) {
+  S.photos.delete(id);
+  for (const [k, l] of S.links) if (l.photo_id === id) S.links.delete(k);
+  for (const a of S.albums.values()) if (a.cover_photo_id === id) a.cover_photo_id = null;
+  const el = cardEls.get(id); if (el) { el.remove(); cardEls.delete(id); }
+  S.selected.delete(id);
+}
+function removeAlbumLocal(id) {
+  S.albums.delete(id);
+  for (const [k, l] of S.links) if (l.album_id === id) S.links.delete(k);
+}
+function loadSnapshot(data) {
+  const temps = [...S.photos.values()].filter(p => p._status || (p._savedAt && Date.now() - p._savedAt < 30000));
+  const locals = new Map([...S.photos.values()].filter(p => p._local).map(p => [p.id, p._local]));
+  S.photos = new Map(); S.albums = new Map(); S.links = new Map();
+  data.photos.filter(p => !(recentDel.get(p.id) > Date.now() - 30000)).forEach(p => S.photos.set(p.id, locals.has(p.id) ? { ...p, _local: locals.get(p.id) } : p));
+  temps.forEach(p => { if (p._status || !S.photos.has(p.id)) S.photos.set(p.id, p); });
+  data.albums.forEach(applyAlbum);
+  data.links.forEach(applyLink);
+  for (const id of [...cardEls.keys()]) if (!S.photos.has(id)) { cardEls.get(id).remove(); cardEls.delete(id); }
+}
+
+const alive = p => p && !S.pendingDelete.has(p.id);
+function sortedPhotos() { return [...S.photos.values()].filter(alive).sort((a, b) => b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0); }
+function albumLinks(albumId) { return [...S.links.values()].filter(l => l.album_id === albumId).sort((a, b) => b.position - a.position); }
+function albumPhotos(albumId) {
+  const temps = [...S.photos.values()].filter(p => p._status && p._albumId === albumId && alive(p)).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return temps.concat(albumLinks(albumId).map(l => S.photos.get(l.photo_id)).filter(alive));
+}
+function photoAlbums(photoId) { return [...S.links.values()].filter(l => l.photo_id === photoId).map(l => S.albums.get(l.album_id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'vi')); }
+function allTags() { const m = new Map(); for (const p of S.photos.values()) for (const t of p.tags || []) m.set(t, (m.get(t) || 0) + 1); return [...m.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]); }
+function storageUsed() { let n = S.extraBytes; for (const p of S.photos.values()) n += p.size_bytes || 0; return n; }
+function realCount() { return [...S.photos.values()].filter(p => !p._status && alive(p)).length; }
+
+function filterByQuery(list) {
+  const tokens = norm(S.query).split(/\s+/).filter(Boolean);
+  if (!tokens.length) return list;
+  const names = new Map();
+  for (const l of S.links.values()) { const a = S.albums.get(l.album_id); if (a) names.set(l.photo_id, (names.get(l.photo_id) || '') + ' ' + a.name); }
+  return list.filter(p => {
+    const hay = norm([p.note, (p.tags || []).join(' '), p.original_name, names.get(p.id) || '', p.source_url || ''].join(' '));
+    return tokens.every(t => hay.includes(t));
+  });
+}
+
+/* =========================================================================
+   LƯỚI SO LE (masonry): mỗi ảnh vào cột đang thấp nhất
+   ========================================================================= */
+const cardEls = new Map();   // id -> phần tử thẻ ảnh (dùng lại giữa các trang)
+
+function createCard(p) {
+  const el = document.createElement('div');
+  el.className = 'card fresh'; el.dataset.id = p.id;
+  el.innerHTML = `<div class="thumb" style="background:${softColor(p.id)}"><img alt="" loading="lazy" decoding="async" draggable="false"><button class="chk" aria-label="Chọn ảnh">${icon('check', 16)}</button><button class="qa">Lưu vào album</button><div class="up"><span class="up-txt"></span><div class="up-bar"><i></i></div></div></div><div class="foot"><button class="more" aria-label="Tùy chọn">${icon('more', 20)}</button></div>`;
+  const img = el.querySelector('img');
+  img.onload = () => img.classList.add('loaded');
+  img.onerror = () => { if (!img.dataset.fb) { img.dataset.fb = '1'; img.src = fallbackImg(p); } };
+  return el;
+}
+function updateCard(el, p) {
+  const img = el.querySelector('img'); const src = photoUrl(p, 'thumb');
+  if (img.dataset.src !== src) { img.dataset.src = src; delete img.dataset.fb; img.classList.remove('loaded'); img.src = src; }
+  el.classList.toggle('selected', S.selected.has(p.id));
+  el.classList.toggle('uploading', p._status === 'uploading');
+  el.classList.toggle('error', p._status === 'error');
+  if (p._status === 'uploading') {
+    el.querySelector('.up-txt').textContent = `Đang tải lên ${Math.round((p._progress || 0) * 100)}%`;
+    el.querySelector('.up-bar i').style.width = Math.round((p._progress || 0) * 100) + '%';
+  } else if (p._status === 'error') {
+    el.querySelector('.up-txt').textContent = 'Tải lên lỗi · Bấm để thử lại';
+  }
+}
+
+class Masonry {
+  constructor(host) {
+    this.root = document.createElement('div'); this.root.className = 'grid';
+    host.appendChild(this.root);
+    this.items = []; this.first = true; this.lastW = 0;
+    this.ro = new ResizeObserver(() => { if (this.root.clientWidth !== this.lastW) this.schedule(); });
+    this.ro.observe(this.root);
+    bindGridEvents(this.root);
+  }
+  setItems(list) {
+    this.items = list;
+    const ids = new Set(list.map(p => p.id));
+    for (const el of [...this.root.children]) if (!ids.has(el.dataset.id)) el.remove();
+    for (const p of list) {
+      let el = cardEls.get(p.id);
+      if (!el) { el = createCard(p); cardEls.set(p.id, el); }
+      updateCard(el, p);
+      if (el.parentNode !== this.root) this.root.appendChild(el);
+    }
+    this.layout();
+  }
+  schedule() { cancelAnimationFrame(this.raf); this.raf = requestAnimationFrame(() => this.layout()); }
+  layout() {
+    const W = this.root.clientWidth; if (!W) return; this.lastW = W;
+    const mob = isMobile(), gap = mob ? 8 : 16, foot = mob ? 26 : 30;
+    const cols = mob ? 2 : Math.max(2, Math.min(7, Math.floor((W + gap) / (250 + gap))));
+    const colW = (W - gap * (cols - 1)) / cols;
+    const hs = new Array(cols).fill(0);
+    for (const p of this.items) {
+      const el = cardEls.get(p.id); if (!el) continue;
+      let c = 0; for (let i = 1; i < cols; i++) if (hs[i] < hs[c] - 1) c = i;
+      const ih = Math.round(colW * p.height / p.width);
+      el.style.width = colW + 'px';
+      el.firstElementChild.style.height = ih + 'px';
+      el.style.transform = `translate(${Math.round(c * (colW + gap))}px,${hs[c]}px)`;
+      hs[c] += ih + foot + gap;
+    }
+    this.root.style.height = Math.max(0, ...hs) + 'px';
+    const fresh = $$('.card.fresh', this.root);
+    requestAnimationFrame(() => requestAnimationFrame(() => fresh.forEach(e => e.classList.remove('fresh'))));
+    const many = this.items.length > 600;
+    if (this.first) { this.first = false; if (!many) requestAnimationFrame(() => this.root.classList.add('anim')); }
+    else this.root.classList.toggle('anim', !many);
+  }
+  destroy() { this.ro.disconnect(); }
+}
+
+function bindGridEvents(root) {
+  let lp = null, suppressClick = false;
+  root.addEventListener('pointerdown', e => {
+    suppressClick = false;
+    const card = e.target.closest('.card'); if (!card || e.pointerType === 'mouse') return;
+    const x = e.clientX, y = e.clientY;
+    lp = { x, y, t: setTimeout(() => { suppressClick = true; enterSelect(card.dataset.id); navigator.vibrate?.(15); lp = null; }, 450) };
+  });
+  const cancel = e => { if (lp && (!e.clientX || Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10)) { clearTimeout(lp.t); lp = null; } };
+  root.addEventListener('pointermove', cancel);
+  root.addEventListener('pointerup', () => { if (lp) { clearTimeout(lp.t); lp = null; } });
+  root.addEventListener('pointercancel', () => { if (lp) { clearTimeout(lp.t); lp = null; } });
+  root.addEventListener('contextmenu', e => { if (e.target.closest('.card') && !matchMedia('(hover:hover)').matches) e.preventDefault(); });
+  root.addEventListener('click', e => {
+    const card = e.target.closest('.card'); if (!card) return;
+    if (suppressClick) { suppressClick = false; return; }
+    const id = card.dataset.id, p = S.photos.get(id); if (!p) return;
+    if (e.target.closest('.more')) return openMenu(e.target.closest('.more'), cardMenu(id));
+    if (p._status === 'error') return retryUpload(id);
+    if (p._status === 'uploading') return toast('Ảnh đang tải lên, chờ chút nhé');
+    if (e.target.closest('.chk')) return toggleSelect(id);
+    if (S.selecting) return toggleSelect(id);
+    if (e.target.closest('.qa')) return addToAlbumFlow([id]);
+    openViewer(id);
+  });
+}
+
+/* =========================================================================
+   ĐIỀU HƯỚNG + CÁC TRANG
+   ========================================================================= */
+let current = null;   // { update(), grid?, destroy() }
+const view = $('#view');
+
+function parseRoute() {
+  const [a, b] = location.hash.replace(/^#\/?/, '').split('/');
+  if (a === 'albums') return { name: 'albums' };
+  if (a === 'album' && b) return { name: 'album', id: decodeURIComponent(b) };
+  if (a === 'settings') return { name: 'settings' };
+  return { name: 'all' };
+}
+function go(hash, tries = 0) {
+  if (layers.length && tries < 6) { if (!tries) history.go(-layers.length); return setTimeout(() => go(hash, tries + 1), 80); }
+  if (location.hash !== hash) location.hash = hash; else mountRoute();
+}
+function currentAlbumId() { return S.route.name === 'album' ? S.route.id : null; }
+
+function mountRoute() {
+  while (layers.length) layers.pop()();
+  clearSelection();
+  current?.destroy?.();
+  S.route = parseRoute();
+  view.innerHTML = '';
+  const r = S.route;
+  current = r.name === 'albums' ? mountAlbums() : r.name === 'album' ? mountAlbum(r.id) : r.name === 'settings' ? mountSettings() : mountAll();
+  current.update();
+  const navKey = r.name === 'album' ? '#/albums' : r.name === 'all' ? '#/' : '#/' + r.name;
+  $$('[data-go]').forEach(b => b.classList.toggle('active', b.dataset.go === navKey));
+  window.scrollTo(0, 0);
+}
+
+function emptyBox(albumName) {
+  const mob = isMobile();
+  return `<div class="empty"><div class="ic">${icon('image', 30)}</div><h2>${albumName ? 'Album này chưa có ảnh' : 'Chưa có ảnh nào'}</h2>
+    <div>${mob ? 'Bấm nút + bên dưới để tải ảnh lên.' : 'Kéo thả ảnh vào đây, dán bằng Ctrl+V, hoặc chọn từ máy.'}</div>
+    <button class="btn primary big" data-act="upload">${icon('upload', 20)} Chọn ảnh từ máy</button></div>`;
+}
+
+/* ----- Trang: Tất cả ảnh ----- */
+function mountAll() {
+  view.innerHTML = `<div class="view-head"><div class="tabs"><span class="tab active" id="vTitle">Tất cả ảnh</span></div><div class="sub" id="vSub"></div></div><div id="vEmpty"></div><div id="gridHost"></div>`;
+  const grid = new Masonry($('#gridHost'));
+  return {
+    grid,
+    update() {
+      const base = sortedPhotos(), list = filterByQuery(base);
+      $('#vTitle').textContent = S.query ? `Kết quả cho “${S.query}”` : 'Tất cả ảnh';
+      $('#vSub').innerHTML = S.query ? `${fmtNum(list.length)} ảnh · <button class="linkbtn" data-act="clearq">Xóa tìm kiếm</button>` : `${fmtNum(base.length)} ảnh`;
+      $('#vEmpty').innerHTML = !base.length ? (S.loaded ? emptyBox() : `<div class="noresult">${S.loadError ? 'Chưa tải được thư viện.' : 'Đang tải thư viện…'}</div>`) : (!list.length ? `<div class="noresult">Không tìm thấy ảnh nào khớp “${esc(S.query)}”.</div>` : '');
+      grid.setItems(list);
+    },
+    destroy() { grid.destroy(); },
+  };
+}
+
+/* ----- Trang: danh sách Album ----- */
+function albumCoverPhotos(a, n = 3) {
+  const list = albumPhotos(a.id).filter(p => !p._status);
+  const cover = a.cover_photo_id && S.photos.get(a.cover_photo_id);
+  const out = cover && alive(cover) && list.includes(cover) ? [cover] : [];
+  for (const p of list) { if (out.length >= n) break; if (!out.includes(p)) out.push(p); }
+  return out;
+}
+function mountAlbums() {
+  view.innerHTML = `<div class="view-head"><div><h1>Album</h1><div class="sub" id="vSub"></div></div><button class="btn primary" data-act="newalbum">${icon('plus', 18)} Tạo album</button></div><div class="albums" id="albumGrid"></div>`;
+  const host = $('#albumGrid');
+  host.addEventListener('click', e => {
+    const card = e.target.closest('.acard'); if (!card) return;
+    if (card.classList.contains('new')) return newAlbumFlow();
+    if (e.target.closest('.amore')) return openMenu(e.target.closest('.amore'), albumMenu(card.dataset.id));
+    go('#/album/' + encodeURIComponent(card.dataset.id));
+  });
+  return {
+    update() {
+      const q = norm(S.query);
+      const albums = [...S.albums.values()].filter(a => !q || norm(a.name).includes(q)).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+      $('#vSub').textContent = q ? `${albums.length} album khớp “${S.query}”` : `${albums.length} album`;
+      host.innerHTML = (q ? '' : `<div class="acard new"><div class="collage">${icon('plus', 32)}</div><h3>Tạo album</h3></div>`) +
+        albums.map(a => {
+          const cov = albumCoverPhotos(a);
+          const cells = [0, 1, 2].map(i => `<div>${cov[i] ? `<img src="${esc(photoUrl(cov[i], 'thumb'))}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>`).join('');
+          const n = albumPhotos(a.id).filter(p => !p._status).length;
+          return `<div class="acard" data-id="${esc(a.id)}"><div class="collage">${cells}</div><button class="amore" aria-label="Tùy chọn album">${icon('more', 18)}</button><h3>${esc(a.name)}</h3><div class="sub">${fmtNum(n)} ảnh</div></div>`;
+        }).join('') + (q && !albums.length ? `<div class="noresult" style="grid-column:1/-1">Không có album nào khớp.</div>` : '');
+    },
+  };
+}
+
+/* ----- Trang: 1 album ----- */
+function mountAlbum(id) {
+  view.innerHTML = `<div class="album-head"><a class="back" href="#/albums">${icon('left', 16)} Album</a><h1 id="aName"></h1><div class="sub" id="vSub"></div>
+    <div class="row"><button class="btn primary" data-act="upload">${icon('upload', 18)} Tải ảnh vào album</button><button class="btn icon" id="aMore" aria-label="Tùy chọn album">${icon('more', 20)}</button></div></div>
+    <div id="vEmpty"></div><div id="gridHost"></div>`;
+  $('#aMore').onclick = e => openMenu(e.currentTarget, albumMenu(id));
+  const grid = new Masonry($('#gridHost'));
+  return {
+    grid,
+    update() {
+      const a = S.albums.get(id);
+      if (!a && !S.loaded) { $('#vEmpty').innerHTML = '<div class="noresult">Đang tải album…</div>'; return; }
+      if (!a) { toast('Album không còn tồn tại'); return go('#/albums'); }
+      const base = albumPhotos(id), list = filterByQuery(base);
+      $('#aName').textContent = a.name;
+      $('#vSub').innerHTML = S.query ? `${fmtNum(list.length)}/${fmtNum(base.length)} ảnh khớp “${esc(S.query)}” · <button class="linkbtn" data-act="clearq">Xóa tìm kiếm</button>` : `${fmtNum(base.length)} ảnh`;
+      $('#vEmpty').innerHTML = !base.length ? emptyBox(a.name) : (!list.length ? `<div class="noresult">Không có ảnh nào trong album khớp “${esc(S.query)}”.</div>` : '');
+      grid.setItems(list);
+    },
+    destroy() { grid.destroy(); },
+  };
+}
+
+/* ----- Trang: Cài đặt ----- */
+function mountSettings() {
+  view.innerHTML = `<div class="view-head"><h1>Cài đặt</h1></div>
+  <div class="set-card"><h2>Dung lượng kho ảnh</h2><div id="stUsed"></div></div>
+  <div class="set-card"><h2>Đồng bộ</h2><p id="stSync"></p><button class="btn" data-act="refresh">${icon('refresh', 18)} Làm mới ngay</button></div>
+  <div class="set-card"><h2>Bảo trì</h2><p>Tìm và xóa file ảnh còn nằm trong kho nhưng không còn trong thư viện (do xóa bị gián đoạn).</p><button class="btn" data-act="orphans">Dọn file thừa</button></div>
+  <div class="set-card"><h2>Sao lưu</h2><p>Tải toàn bộ ảnh lớn và thông tin (ghi chú, tag, link, album) về máy thành một file .zip. Vì app không khóa, nên sao lưu định kỳ, tốt nhất làm trên laptop.</p><p id="stBackup"></p><button class="btn" data-act="backup">${icon('download', 18)} Tải bản sao lưu (.zip)</button></div>
+  ${CONFIG.USE_MOCK ? `<div class="set-card"><h2>Công cụ thử nghiệm <span class="badge">Chỉ có ở bản giả lập</span></h2><p>Dùng để thử giao diện. Tải lại trang là dữ liệu mẫu trở về như ban đầu.</p>
+    <div class="set-row"><button class="btn" data-act="mock500">Thêm 500 ảnh mẫu</button><button class="btn" data-act="mockremote">Giả lập ảnh mới từ thiết bị khác</button><button class="btn" data-act="mockreset">Đặt lại dữ liệu mẫu</button></div>
+    <label class="switch"><input type="checkbox" id="mFail"> Giả lập lỗi tải lên (30% ảnh bị lỗi)</label>
+    <label class="switch"><input type="checkbox" id="mFull"> Giả lập kho gần đầy (+900 MB)</label></div>` : ''}
+  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.0.1 · Supabase'}</div>`;
+  if (CONFIG.USE_MOCK) {
+    const f = $('#mFail'), u = $('#mFull');
+    f.checked = mockFlags.failRate > 0; u.checked = S.extraBytes > 0;
+    f.onchange = () => { mockFlags.failRate = f.checked ? .3 : 0; };
+    u.onchange = () => { S.extraBytes = u.checked ? 900e6 : 0; render(); };
+  }
+  return {
+    update() {
+      const used = storageUsed(), n = realCount();
+      const pct = Math.min(100, used / CONFIG.STORAGE_LIMIT * 100);
+      const avg = n ? (used - S.extraBytes) / n : 400e3;
+      const left = Math.max(0, Math.floor((CONFIG.BLOCK_AT - used) / Math.max(avg, 1)));
+      const cls = used >= CONFIG.BLOCK_AT ? 'full' : used >= CONFIG.WARN_AT ? 'warn' : '';
+      $('#stUsed').innerHTML = `<div class="big-num">${fmtBytes(used)} <span class="sub" style="font-size:16px;font-weight:600">/ 1 GB</span></div>
+        <div class="meter ${cls}"><i style="width:${pct}%"></i></div>
+        <div class="sub">${fmtNum(n)} ảnh · trung bình ${fmtBytes(avg)}/ảnh · còn chứa khoảng ${fmtNum(left)} ảnh nữa</div>
+        <div class="sub">Cảnh báo khi vượt 800 MB, chặn tải lên khi vượt 950 MB để không bao giờ phát sinh phí.</div>`;
+      const last = lastBackup();
+      $('#stBackup').textContent = last ? `Lần sao lưu gần nhất trên thiết bị này: ${fmtDate(last)}` : 'Chưa sao lưu lần nào trên thiết bị này.';
+      $('#stSync').textContent = S.sync === 'offline' ? 'Mất kết nối. Thay đổi từ thiết bị khác sẽ hiện khi có mạng lại.' : 'Thay đổi trên thiết bị khác sẽ tự hiện ở đây trong vài giây.';
+    },
+  };
+}
+
+/* ---------- Vẽ lại (gộp nhiều thay đổi vào 1 khung hình) ---------- */
+let renderRaf = 0;
+function render() {
+  cancelAnimationFrame(renderRaf);
+  renderRaf = requestAnimationFrame(() => {
+    current?.update();
+    renderBanner();
+    renderSync();
+    if (S.selecting) renderSelbar();
+    if (V.open) refreshViewer();
+  });
+}
+function renderBanner() {
+  const used = storageUsed(), b = $('#banner');
+  if (S.loadError) { b.className = 'banner danger'; b.innerHTML = `<span>Không kết nối được máy chủ: ${esc(S.loadError)}</span><button class="linkbtn" data-act="refresh">Thử lại</button>`; }
+  else if (used >= CONFIG.BLOCK_AT) { b.className = 'banner danger'; b.innerHTML = `<span>Kho ảnh đã đầy (${fmtBytes(used)} / 1 GB). Tải lên tạm khóa, hãy xóa bớt ảnh.</span><a class="linkbtn" href="#/settings">Xem dung lượng</a>`; }
+  else if (used >= CONFIG.WARN_AT) { b.className = 'banner'; b.innerHTML = `<span>Kho ảnh sắp đầy: ${fmtBytes(used)} / 1 GB.</span><a class="linkbtn" href="#/settings">Xem dung lượng</a>`; }
+  else { b.className = 'banner'; b.innerHTML = ''; }
+}
+function renderSync() {
+  const el = $('#sync');
+  el.className = 'sync ' + S.sync;
+  const t = S.sync === 'syncing' ? 'Đang đồng bộ…' : S.sync === 'offline' ? 'Mất kết nối' : 'Đã đồng bộ';
+  el.title = t; el.querySelector('span').textContent = t;
+}
+
+/* =========================================================================
+   CHỌN NHIỀU
+   ========================================================================= */
+function enterSelect(id) { S.selected.add(id); syncSelection(); }
+function toggleSelect(id) { S.selected.has(id) ? S.selected.delete(id) : S.selected.add(id); syncSelection(); }
+function clearSelection() { if (!S.selected.size && !S.selecting) return; S.selected.clear(); syncSelection(); }
+function syncSelection() {
+  S.selecting = S.selected.size > 0;
+  document.body.classList.toggle('selecting', S.selecting);
+  for (const [id, el] of cardEls) el.classList.toggle('selected', S.selected.has(id));
+  renderSelbar();
+}
+function renderSelbar() {
+  const bar = $('#selbar');
+  if (!S.selecting) { bar.classList.remove('show'); return; }
+  const inAlbum = S.route.name === 'album';
+  bar.innerHTML = `<button class="sb-x" data-a="cancel" aria-label="Bỏ chọn">${icon('x', 18)}</button><span class="sb-n">Đã chọn ${S.selected.size}</span>
+    <button data-a="all" aria-label="Chọn tất cả">${icon('select', 18)}<span>Chọn tất cả</span></button>
+    <button data-a="add" aria-label="Thêm vào album">${icon('albumAdd', 18)}<span>Thêm vào album</span></button>
+    ${inAlbum ? `<button data-a="move" aria-label="Chuyển sang album khác">${icon('move', 18)}<span>Chuyển</span></button><button data-a="remove" aria-label="Gỡ khỏi album">${icon('minus', 18)}<span>Gỡ khỏi album</span></button>` : ''}
+    <button data-a="delete" class="danger" aria-label="Xóa">${icon('trash', 18)}<span>Xóa</span></button>`;
+  bar.classList.add('show');
+}
+$('#selbar').addEventListener('click', e => {
+  const a = e.target.closest('button')?.dataset.a; if (!a) return;
+  const ids = [...S.selected].filter(id => S.photos.get(id) && !S.photos.get(id)._status);
+  if (a === 'cancel') return clearSelection();
+  if (a === 'all') { (current?.grid?.items || []).forEach(p => { if (!p._status) S.selected.add(p.id); }); return syncSelection(); }
+  if (!ids.length) return toast('Chưa chọn ảnh nào');
+  if (a === 'add') return addToAlbumFlow(ids, true);
+  if (a === 'move') return moveFlow(ids, S.route.id, true);
+  if (a === 'remove') return removeFromAlbumFlow(ids, S.route.id, true);
+  if (a === 'delete') return deleteFlow(ids);
+});
+
+/* =========================================================================
+   LỚP PHỦ (xem ảnh, hộp thoại) + nút Back của Android
+   ========================================================================= */
+const layers = [];
+function pushLayer(closeFn) { layers.push(closeFn); history.pushState({ layer: layers.length }, ''); }
+function popLayer() { if (layers.length) history.back(); }
+window.addEventListener('popstate', e => {
+  const target = e.state?.layer || 0;
+  while (layers.length > target) layers.pop()();
+});
+
+/* ----- Hộp thoại chung ----- */
+function openSheet(html, onMount) {
+  return new Promise(resolve => {
+    const bg = document.createElement('div'); bg.className = 'sheet-bg';
+    bg.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+    $('#layerRoot').appendChild(bg);
+    let result = null, closed = false;
+    const finish = () => { if (closed) return; closed = true; bg.remove(); resolve(result); };
+    finish.isSheet = true;
+    pushLayer(finish);
+    const done = val => { result = val; popLayer(); };
+    bg.addEventListener('click', e => { if (e.target === bg) done(null); });
+    onMount(bg.firstElementChild, done);
+  });
+}
+function promptDialog({ title, value = '', placeholder = '', ok = 'Lưu' }) {
+  return openSheet(`<h3>${esc(title)}</h3><input class="f-in" id="pIn" maxlength="80" placeholder="${esc(placeholder)}" value="${esc(value)}"><div class="acts"><button class="btn" data-x>Hủy</button><button class="btn primary" data-ok>${esc(ok)}</button></div>`, (el, done) => {
+    const inp = $('#pIn', el);
+    setTimeout(() => { inp.focus(); inp.select(); }, 50);
+    const submit = () => { const v = inp.value.trim(); if (!v) { inp.focus(); return; } done(v); };
+    $('[data-ok]', el).onclick = submit; $('[data-x]', el).onclick = () => done(null);
+    inp.onkeydown = e => { if (e.key === 'Enter') submit(); };
+  });
+}
+function confirmDialog({ title, text, ok = 'Đồng ý', danger = false }) {
+  return openSheet(`<h3>${esc(title)}</h3><p>${esc(text)}</p><div class="acts"><button class="btn" data-x>Hủy</button><button class="btn ${danger ? 'danger' : 'primary'}" data-ok>${esc(ok)}</button></div>`, (el, done) => {
+    $('[data-ok]', el).onclick = () => done(true); $('[data-x]', el).onclick = () => done(false);
+  });
+}
+/** Chọn album (có ô tạo album mới). Trả về id album hoặc null */
+function pickAlbum({ title, excludeId = null, markFor = [] }) {
+  const albums = [...S.albums.values()].filter(a => a.id !== excludeId).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  const allIn = a => markFor.length && markFor.every(pid => S.links.has(linkKey(a.id, pid)));
+  const items = albums.map(a => {
+    const cov = albumCoverPhotos(a, 1)[0];
+    return `<button class="aitem ${allIn(a) ? 'has' : ''}" data-id="${esc(a.id)}"><span class="cv">${cov ? `<img src="${esc(photoUrl(cov, 'thumb'))}" alt="" onerror="this.remove()">` : ''}</span><span><b>${esc(a.name)}</b><small>${fmtNum(albumPhotos(a.id).length)} ảnh${allIn(a) ? ' · đã có' : ''}</small></span></button>`;
+  }).join('');
+  return openSheet(`<h3>${esc(title)}</h3><div class="row" style="margin-top:12px"><input class="f-in" id="newA" maxlength="80" placeholder="Tên album mới…"><button class="btn primary" id="newABtn">Tạo</button></div><div class="alist">${items || '<div class="sub" style="padding:12px 4px">Chưa có album nào. Gõ tên ở trên để tạo.</div>'}</div><div class="acts"><button class="btn" data-x>Hủy</button></div>`, (el, done) => {
+    $('[data-x]', el).onclick = () => done(null);
+    $('.alist', el).onclick = e => { const b = e.target.closest('.aitem'); if (b) done(b.dataset.id); };
+    let busy = false;
+    const create = async () => {
+      const name = $('#newA', el).value.trim(); if (!name) return $('#newA', el).focus();
+      if (busy) return; busy = true;
+      try { const a = await api.createAlbum(name); applyAlbum(a); done(a.id); } catch (err) { busy = false; toast('Không tạo được album: ' + err.message); }
+    };
+    $('#newABtn', el).onclick = create;
+    $('#newA', el).onkeydown = e => { if (e.key === 'Enter') create(); };
+  });
+}
+
+/* ----- Menu nhỏ ----- */
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+function openMenu(anchor, items) {
+  closeMenu();
+  menuEl = document.createElement('div'); menuEl.className = 'menu';
+  menuEl.innerHTML = items.map((it, i) => it === '-' ? '<hr>' : `<button data-i="${i}" class="${it.danger ? 'danger' : ''}">${icon(it.icon, 18)}${esc(it.label)}</button>`).join('');
+  document.body.appendChild(menuEl);
+  const r = anchor.getBoundingClientRect(), m = menuEl.getBoundingClientRect();
+  let left = Math.min(window.innerWidth - m.width - 8, Math.max(8, r.right - m.width));
+  let top = r.bottom + 6; if (top + m.height > window.innerHeight - 8) top = Math.max(8, r.top - m.height - 6);
+  menuEl.style.left = left + 'px'; menuEl.style.top = top + 'px';
+  menuEl.onclick = e => { const b = e.target.closest('button'); if (!b) return; const it = items[+b.dataset.i]; closeMenu(); it.run(); };
+}
+document.addEventListener('pointerdown', e => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest('.more,.amore,#aMore')) closeMenu(); });
+window.addEventListener('scroll', closeMenu, { passive: true });
+
+function cardMenu(id) {
+  const albumId = currentAlbumId();
+  return [
+    { icon: 'open', label: 'Mở ảnh', run: () => openViewer(id) },
+    { icon: 'albumAdd', label: 'Thêm vào album…', run: () => addToAlbumFlow([id]) },
+    ...(albumId ? [
+      { icon: 'move', label: 'Chuyển sang album khác…', run: () => moveFlow([id], albumId) },
+      { icon: 'star', label: 'Đặt làm ảnh bìa album', run: () => setCoverFlow(albumId, id) },
+      { icon: 'minus', label: 'Gỡ khỏi album này', run: () => removeFromAlbumFlow([id], albumId) },
+    ] : []),
+    { icon: 'download', label: 'Tải về máy', run: () => downloadPhoto(id) },
+    { icon: 'select', label: 'Chọn nhiều ảnh', run: () => enterSelect(id) },
+    '-',
+    { icon: 'trash', label: 'Xóa ảnh', danger: true, run: () => deleteFlow([id]) },
+  ];
+}
+function albumMenu(id) {
+  return [
+    { icon: 'edit', label: 'Đổi tên album', run: () => renameAlbumFlow(id) },
+    '-',
+    { icon: 'trash', label: 'Xóa album', danger: true, run: () => deleteAlbumFlow(id) },
+  ];
+}
+
+/* =========================================================================
+   CÁC THAO TÁC
+   ========================================================================= */
+async function addToAlbumFlow(ids, fromSel) {
+  const aid = await pickAlbum({ title: ids.length > 1 ? `Thêm ${ids.length} ảnh vào album` : 'Thêm vào album', markFor: ids });
+  if (!aid) return;
+  try {
+    const links = await api.addToAlbum(aid, ids); links.forEach(applyLink);
+    const a = S.albums.get(aid);
+    toast(links.length ? `Đã thêm ${links.length} ảnh vào “${a.name}”` : `Ảnh đã có sẵn trong “${a.name}”`, { action: 'Xem album', onAction: () => go('#/album/' + encodeURIComponent(aid)) });
+    if (fromSel) clearSelection();
+  } catch (err) { toast('Không thêm được: ' + err.message); }
+  render();
+}
+async function moveFlow(ids, fromId, fromSel) {
+  const aid = await pickAlbum({ title: `Chuyển ${ids.length} ảnh sang album`, excludeId: fromId });
+  if (!aid) return;
+  try {
+    const links = await api.addToAlbum(aid, ids); links.forEach(applyLink);
+    await api.removeFromAlbum(fromId, ids); ids.forEach(pid => removeLink(fromId, pid));
+    toast(`Đã chuyển ${ids.length} ảnh sang “${S.albums.get(aid).name}”`);
+    if (fromSel) clearSelection();
+  } catch (err) { toast('Không chuyển được: ' + err.message); }
+  render();
+}
+async function removeFromAlbumFlow(ids, albumId, fromSel) {
+  const removed = ids.map(pid => S.links.get(linkKey(albumId, pid))).filter(Boolean);
+  try {
+    await api.removeFromAlbum(albumId, ids); ids.forEach(pid => removeLink(albumId, pid));
+    if (fromSel) clearSelection();
+    render();
+    toast(`Đã gỡ ${ids.length} ảnh khỏi album (ảnh vẫn còn ở Tất cả ảnh)`, {
+      action: 'Hoàn tác', onAction: async () => { const ls = await api.addToAlbum(albumId, ids); ls.forEach(applyLink); render(); },
+    });
+  } catch (err) { toast('Không gỡ được: ' + err.message); }
+}
+async function setCoverFlow(albumId, photoId) {
+  try { applyAlbum(await api.updateAlbum(albumId, { cover_photo_id: photoId })); toast('Đã đặt làm ảnh bìa'); render(); }
+  catch (err) { toast('Lỗi: ' + err.message); }
+}
+async function newAlbumFlow() {
+  const name = await promptDialog({ title: 'Tạo album mới', placeholder: 'Ví dụ: Nội thất phòng khách', ok: 'Tạo' });
+  if (!name) return;
+  try { applyAlbum(await api.createAlbum(name)); toast(`Đã tạo album “${name}”`); render(); }
+  catch (err) { toast('Không tạo được: ' + err.message); }
+}
+async function renameAlbumFlow(id) {
+  const a = S.albums.get(id); if (!a) return;
+  const name = await promptDialog({ title: 'Đổi tên album', value: a.name });
+  if (!name || name === a.name) return;
+  try { applyAlbum(await api.updateAlbum(id, { name })); render(); } catch (err) { toast('Lỗi: ' + err.message); }
+}
+async function deleteAlbumFlow(id) {
+  const a = S.albums.get(id); if (!a) return;
+  const ok = await confirmDialog({ title: `Xóa album “${a.name}”?`, text: 'Ảnh trong album KHÔNG bị xóa, vẫn còn ở Tất cả ảnh.', ok: 'Xóa album', danger: true });
+  if (!ok) return;
+  try { await api.deleteAlbum(id); removeAlbumLocal(id); toast('Đã xóa album'); if (S.route.name === 'album') go('#/albums'); else render(); }
+  catch (err) { toast('Lỗi: ' + err.message); }
+}
+
+/* ----- Xóa ảnh có Hoàn tác 5 giây ----- */
+const pendingTimers = new Map();   // batchKey -> {ids, timer}
+function deleteFlow(ids) {
+  ids = ids.filter(id => S.photos.get(id) && !S.photos.get(id)._status);
+  if (!ids.length) return;
+  ids.forEach(id => S.pendingDelete.add(id));
+  clearSelection();
+  const key = uid();
+  const commit = async () => {
+    pendingTimers.delete(key);
+    try { await api.deletePhotos(ids); ids.forEach(id => { recentDel.set(id, Date.now()); removePhotoLocal(id); }); }
+    catch (err) { toast('Xóa thất bại, ảnh đã được khôi phục'); }
+    ids.forEach(id => S.pendingDelete.delete(id)); render();
+  };
+  pendingTimers.set(key, { commit, timer: setTimeout(commit, CONFIG.UNDO_MS) });
+  if (V.open && ids.includes(V.id)) viewerAfterRemove();
+  render();
+  toast(`Đã xóa ${ids.length} ảnh`, {
+    ms: CONFIG.UNDO_MS, action: 'Hoàn tác',
+    onAction: () => { const t = pendingTimers.get(key); if (!t) return; clearTimeout(t.timer); pendingTimers.delete(key); ids.forEach(id => S.pendingDelete.delete(id)); render(); },
+  });
+}
+function flushDeletes() { for (const [, t] of pendingTimers) { clearTimeout(t.timer); t.commit(); } }
+window.addEventListener('pagehide', flushDeletes);
+
+async function downloadPhoto(id) {
+  const p = S.photos.get(id); if (!p) return;
+  const url = photoUrl(p, 'full');
+  const name = (p.original_name ? p.original_name.replace(/\.[^.]+$/, '') : 'anh-' + id.slice(0, 8)) + '.webp';
+  try {
+    const blob = await (await fetch(url)).blob();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch { window.open(url, '_blank'); }
+}
+
+/* ----- Sao lưu .zip (P3) ----- */
+function lastBackup() { try { return localStorage.getItem('tva-last-backup'); } catch { return null; } }
+let backingUp = false;
+async function backupFlow(btn) {
+  if (backingUp) return;
+  const photos = [...S.photos.values()].filter(p => !p._status && alive(p));
+  if (!photos.length) return toast('Chưa có ảnh nào để sao lưu');
+  const total = photos.reduce((s, p) => s + (p.size_bytes || 0), 0);
+  if (isMobile() && total > 300e6) {
+    const ok = await confirmDialog({ title: 'Bản sao lưu khá lớn', text: `Khoảng ${fmtBytes(total)}. Điện thoại có thể thiếu bộ nhớ, nên làm trên laptop. Vẫn tiếp tục?`, ok: 'Tiếp tục' });
+    if (!ok) return;
+  }
+  backingUp = true; btn.disabled = true;
+  const label = btn.innerHTML;
+  try {
+    btn.textContent = 'Đang chuẩn bị…';
+    if (!window.JSZip) await loadScript(JSZIP_JS);
+    const zip = new JSZip();
+    const strip = p => Object.fromEntries(Object.entries(p).filter(([k]) => !k.startsWith('_')));
+    zip.file('data.json', JSON.stringify({
+      app: 'thuvienanh', version: 1, exported_at: nowIso(),
+      photos: photos.map(strip), albums: [...S.albums.values()], album_photos: [...S.links.values()],
+    }, null, 2));
+    zip.file('DOC-TRUOC.txt', 'Bản sao lưu Thư viện ảnh\n\n- data.json: thông tin ảnh (ghi chú, tag, link nguồn), album và ảnh nào thuộc album nào.\n- full/: ảnh lớn dạng WebP. Tên file = id của ảnh trong data.json.\n- Thumbnail không kèm theo vì có thể tạo lại từ ảnh lớn.\n');
+    const work = photos.slice(), failed = []; let done = 0;
+    const worker = async () => {
+      while (work.length) {
+        const p = work.shift();
+        try { const r = await fetch(photoUrl(p, 'full')); if (!r.ok) throw new Error(r.status); zip.file(`full/${p.id}.webp`, await r.blob()); }
+        catch { failed.push(p.id); }
+        btn.textContent = `Đang tải ảnh ${++done}/${photos.length}…`;
+      }
+    };
+    await Promise.all([1, 2, 3, 4].map(worker));
+    btn.textContent = 'Đang đóng gói…';
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `thuvienanh-saoluu-${new Date().toISOString().slice(0, 10)}.zip`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60e3);
+    try { localStorage.setItem('tva-last-backup', nowIso()); } catch {}
+    toast(failed.length ? `Đã sao lưu, nhưng ${failed.length} ảnh không tải được` : `Đã sao lưu ${photos.length} ảnh (${fmtBytes(blob.size)})`, { ms: 6000 });
+  } catch (err) { toast('Sao lưu thất bại: ' + err.message, { ms: 6000 }); }
+  backingUp = false; btn.disabled = false; btn.innerHTML = label;
+  render();
+}
+
+/* =========================================================================
+   XEM ẢNH LỚN
+   ========================================================================= */
+const V = { open: false, list: [], idx: 0, id: null };
+const viewerEl = $('#viewer');
+const savedFlash = debounce(() => flashSaved(''), 1800);
+
+function openViewer(id) {
+  const p = S.photos.get(id); if (!p) return;
+  V.list = (current?.grid?.items || [p]).filter(x => !x._status).map(x => x.id);
+  if (!V.list.includes(id)) V.list = [id];
+  V.idx = V.list.indexOf(id); V.id = id;
+  if (!V.open) {
+    V.open = true; viewerEl.classList.add('open'); document.body.classList.add('noscroll');
+    pushLayer(() => { V.open = false; viewerEl.classList.remove('open'); viewerEl.innerHTML = ''; document.body.classList.remove('noscroll'); });
+  }
+  renderViewer();
+}
+function closeViewer() { popLayer(); }
+function stepViewer(d) {
+  const i = V.idx + d; if (i < 0 || i >= V.list.length) return;
+  V.idx = i; V.id = V.list[i]; renderViewer();
+}
+function viewerAfterRemove() {
+  V.list = V.list.filter(id => alive(S.photos.get(id)));
+  if (!V.list.length) return closeViewer();
+  V.idx = Math.min(V.idx, V.list.length - 1); V.id = V.list[V.idx]; renderViewer();
+}
+function refreshViewer() {
+  if (!alive(S.photos.get(V.id))) return viewerAfterRemove();
+  if (viewerEl.contains(document.activeElement) && document.activeElement.matches('input,textarea')) { renderVTags(); renderVAlbums(); return; }
+  renderViewer(true);
+}
+
+function renderViewer(keepImage) {
+  const p = S.photos.get(V.id); if (!p) return;
+  const prevImg = $('.v-img', viewerEl);
+  const keep = keepImage && prevImg && prevImg.dataset.id === p.id;
+  const scroll = viewerEl.scrollTop, pscroll = $('.v-panel', viewerEl)?.scrollTop || 0;
+  viewerEl.innerHTML = `
+  <div class="v-stage" id="vStage">
+    <img class="v-img" alt="" data-id="${esc(p.id)}" draggable="false">
+    <button class="v-btn v-close" data-v="close" aria-label="Đóng">${icon('x', 22)}</button>
+    <div class="v-count">${V.idx + 1} / ${V.list.length}</div>
+    <button class="v-btn v-prev" data-v="prev" aria-label="Ảnh trước" ${V.idx === 0 ? 'disabled' : ''}>${icon('left', 24)}</button>
+    <button class="v-btn v-next" data-v="next" aria-label="Ảnh sau" ${V.idx >= V.list.length - 1 ? 'disabled' : ''}>${icon('right', 24)}</button>
+  </div>
+  <div class="v-panel">
+    <div class="v-actions">
+      <button class="btn" data-v="album">${icon('albumAdd', 18)} Thêm vào album</button>
+      <button class="btn icon" data-v="download" title="Tải về máy" aria-label="Tải về máy">${icon('download', 18)}</button>
+      <button class="btn icon danger" data-v="delete" title="Xóa ảnh" aria-label="Xóa ảnh">${icon('trash', 18)}</button>
+    </div>
+    <label class="f-label" for="fNote">Ghi chú</label>
+    <textarea class="f-in" id="fNote" rows="3" placeholder="Thêm ghi chú cho ảnh…">${esc(p.note)}</textarea>
+    <label class="f-label" for="fTag">Tag</label>
+    <div class="tagbox" id="tagBox"><span id="tagChips" style="display:contents"></span><input id="fTag" placeholder="Thêm tag, Enter để lưu" autocomplete="off" enterkeyhint="done"></div>
+    <div class="sugg" id="tagSugg"></div>
+    <label class="f-label" for="fSrc">Link nguồn</label>
+    <div class="row"><input class="f-in" id="fSrc" type="url" inputmode="url" placeholder="https://…" value="${esc(p.source_url || '')}"><a class="btn icon" id="srcOpen" target="_blank" rel="noopener" title="Mở link" aria-label="Mở link">${icon('link', 18)}</a></div>
+    <label class="f-label">Album</label>
+    <div class="v-albums" id="vAlbums"></div>
+    <div class="v-saved">${esc(V.status || '')}</div>
+    <div class="v-info">${p.width} × ${p.height} px · ${fmtBytes(p.size_bytes)}<br>Tải lên ${fmtDate(p.created_at)}${p.original_name ? '<br>' + esc(p.original_name) : ''}</div>
+  </div>`;
+  if (keep) { viewerEl.scrollTop = scroll; $('.v-panel', viewerEl).scrollTop = pscroll; }
+  // Ảnh: hiện thumbnail ngay, ảnh lớn tải xong thì thay
+  const img = $('.v-img', viewerEl);
+  const thumb = photoUrl(p, 'thumb'), full = photoUrl(p, 'full');
+  img.src = keep ? prevImg.src : thumb;
+  img.onerror = () => { img.onerror = null; img.src = fallbackImg(p); };
+  if (img.src !== full) { const pre = new Image(); pre.onload = () => { if (V.id === p.id && img.isConnected) img.src = full; }; pre.src = full; }
+  [V.list[V.idx - 1], V.list[V.idx + 1]].forEach(n => { const q = n && S.photos.get(n); if (q) new Image().src = photoUrl(q, 'full'); });
+  updateSrcLink();
+  renderVTags(); renderVAlbums();
+  bindViewerInputs(p.id);
+  bindSwipe();
+}
+function updateSrcLink() {
+  const v = $('#fSrc', viewerEl)?.value.trim(), a = $('#srcOpen', viewerEl); if (!a) return;
+  const ok = /^https?:\/\//i.test(v || '');
+  a.href = ok ? v : '#'; a.style.opacity = ok ? 1 : .35; a.style.pointerEvents = ok ? '' : 'none';
+}
+function renderVTags() {
+  const p = S.photos.get(V.id), box = $('#tagChips', viewerEl); if (!p || !box) return;
+  box.innerHTML = (p.tags || []).map(t => `<span class="chip"><span class="nm" data-tag="${esc(t)}">${esc(t)}</span><button data-rmtag="${esc(t)}" aria-label="Bỏ tag ${esc(t)}">${icon('x', 12)}</button></span>`).join('');
+  renderTagSugg();
+}
+function renderTagSugg() {
+  const p = S.photos.get(V.id), inp = $('#fTag', viewerEl), box = $('#tagSugg', viewerEl); if (!p || !inp) return;
+  const q = norm(inp.value), have = new Set(p.tags || []);
+  const list = allTags().filter(t => !have.has(t) && (!q || norm(t).includes(q))).slice(0, q ? 8 : 6);
+  box.innerHTML = list.length ? list.map(t => `<button data-addtag="${esc(t)}">+ ${esc(t)}</button>`).join('') : '';
+}
+function renderVAlbums() {
+  const box = $('#vAlbums', viewerEl); if (!box) return;
+  box.innerHTML = photoAlbums(V.id).map(a => `<span class="chip"><span class="nm" data-goalbum="${esc(a.id)}">${esc(a.name)}</span><button data-rmalbum="${esc(a.id)}" aria-label="Gỡ khỏi album ${esc(a.name)}">${icon('x', 12)}</button></span>`).join('') +
+    `<button class="chip add" data-v="album">+ Thêm</button>`;
+}
+
+const savingCount = new Map();   // ảnh đang có lệnh lưu chưa xong → bỏ qua bản cũ dội về
+function flashSaved(t) { V.status = t; const el = $('.v-saved', viewerEl); if (el) el.textContent = t; }
+async function savePhoto(id, patch) {
+  const cur = S.photos.get(id); if (!cur) return;
+  const before = Object.fromEntries(Object.keys(patch).map(k => [k, cur[k]]));
+  flashSaved('Đang lưu…');
+  applyPhoto({ id, ...patch });
+  savingCount.set(id, (savingCount.get(id) || 0) + 1);
+  let saved = null, error = null;
+  try { saved = await api.updatePhoto(id, patch); } catch (err) { error = err; }
+  const left = savingCount.get(id) - 1; left > 0 ? savingCount.set(id, left) : savingCount.delete(id);
+  if (error) { if (S.photos.has(id)) applyPhoto({ id, ...before }); toast('Không lưu được: ' + error.message); flashSaved(''); }
+  else { if (left <= 0 && S.photos.has(id)) applyPhoto(saved); flashSaved('Đã lưu'); savedFlash(); }
+  render();
+}
+function bindViewerInputs(id) {
+  const note = $('#fNote', viewerEl), src = $('#fSrc', viewerEl), tag = $('#fTag', viewerEl);
+  const saveNote = debounce(() => savePhoto(id, { note: note.value.trim() }), 600);
+  const saveSrc = debounce(() => savePhoto(id, { source_url: src.value.trim() || null }), 600);
+  note.oninput = saveNote;
+  src.oninput = () => { updateSrcLink(); saveSrc(); };
+  const addTag = t => {
+    t = normTag(t); const p = S.photos.get(id); if (!t || !p || (p.tags || []).includes(t)) return;
+    savePhoto(id, { tags: [...(p.tags || []), t] }); tag.value = ''; renderVTags();
+  };
+  tag.onkeydown = e => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tag.value); }
+    else if (e.key === 'Backspace' && !tag.value) { const p = S.photos.get(id); if (p.tags?.length) { savePhoto(id, { tags: p.tags.slice(0, -1) }); renderVTags(); } }
+  };
+  tag.oninput = () => { if (tag.value.includes(',')) addTag(tag.value.replace(/,/g, '')); else renderTagSugg(); };
+  tag.onblur = e => { if (e.relatedTarget?.closest?.('#tagSugg')) return; if (tag.value.trim()) addTag(tag.value); };
+  $('#tagBox', viewerEl).onclick = e => { if (e.target.id === 'tagBox') tag.focus(); };
+  viewerEl.onclick = async e => {
+    const t = e.target.closest('[data-v],[data-rmtag],[data-addtag],[data-tag],[data-rmalbum],[data-goalbum]'); if (!t) return;
+    const p = S.photos.get(id); if (!p) return;
+    if (t.dataset.v === 'close') return closeViewer();
+    if (t.dataset.v === 'prev') return stepViewer(-1);
+    if (t.dataset.v === 'next') return stepViewer(1);
+    if (t.dataset.v === 'album') return addToAlbumFlow([id]);
+    if (t.dataset.v === 'download') return downloadPhoto(id);
+    if (t.dataset.v === 'delete') return deleteFlow([id]);
+    if (t.dataset.rmtag) { savePhoto(id, { tags: p.tags.filter(x => x !== t.dataset.rmtag) }); return renderVTags(); }
+    if (t.dataset.addtag) return addTag(t.dataset.addtag);
+    if (t.dataset.tag) { const q = t.dataset.tag; closeViewer(); setTimeout(() => { setQuery(q); if (S.route.name !== 'all') go('#/'); }, 60); return; }
+    if (t.dataset.rmalbum) return removeFromAlbumFlow([id], t.dataset.rmalbum);
+    if (t.dataset.goalbum) { const aid = t.dataset.goalbum; closeViewer(); setTimeout(() => go('#/album/' + encodeURIComponent(aid)), 60); }
+  };
+}
+
+/* Vuốt trên điện thoại: trái/phải = ảnh khác, xuống = đóng, lên = xem chi tiết */
+function bindSwipe() {
+  const stage = $('#vStage', viewerEl), img = $('.v-img', viewerEl);
+  let s = null;
+  stage.onpointerdown = e => {
+    if (e.pointerType === 'mouse' || e.target.closest('.v-btn')) return;
+    s = { x: e.clientX, y: e.clientY, axis: null, dx: 0, dy: 0 };
+    img.style.transition = 'none';
+  };
+  stage.onpointermove = e => {
+    if (!s) return;
+    s.dx = e.clientX - s.x; s.dy = e.clientY - s.y;
+    if (!s.axis && Math.hypot(s.dx, s.dy) > 10) s.axis = Math.abs(s.dx) > Math.abs(s.dy) ? 'x' : 'y';
+    if (s.axis === 'x') img.style.transform = `translateX(${s.dx}px)`;
+    if (s.axis === 'y' && s.dy > 0 && viewerEl.scrollTop <= 0) {
+      img.style.transform = `translateY(${s.dy}px) scale(${Math.max(.8, 1 - s.dy / 1500)})`;
+      viewerEl.style.background = `rgba(14,14,14,${Math.max(.3, 1 - s.dy / 500)})`;
+    }
+  };
+  const end = () => {
+    if (!s) return;
+    const { axis, dx, dy } = s; s = null;
+    img.style.transition = ''; viewerEl.style.background = '';
+    if (axis === 'x' && Math.abs(dx) > 60) {
+      const d = dx < 0 ? 1 : -1;
+      if (V.list[V.idx + d]) { img.style.transform = `translateX(${dx < 0 ? -40 : 40}px)`; img.style.opacity = 0; return setTimeout(() => stepViewer(d), 120); }
+    }
+    if (axis === 'y' && dy > 110 && viewerEl.scrollTop <= 0) return closeViewer();
+    if (axis === 'y' && dy < -60) viewerEl.scrollTo({ top: stage.offsetHeight - 120, behavior: 'smooth' });
+    img.style.transform = '';
+  };
+  stage.onpointerup = end; stage.onpointercancel = end;
+}
+
+/* =========================================================================
+   TẢI ẢNH LÊN: nút bấm, Ctrl+V, kéo-thả — chung một đường
+   ========================================================================= */
+const isImageFile = f => f && (/^image\//.test(f.type) || /\.(heic|heif|avif|webp|jpe?g|png|gif|bmp)$/i.test(f.name || ''));
+const queue = []; let active = 0;
+const fileInput = $('#fileInput');
+fileInput.onchange = () => { enqueue([...fileInput.files], currentAlbumId()); fileInput.value = ''; };
+function openFilePicker() {
+  if (storageUsed() >= CONFIG.BLOCK_AT) return toast('Kho ảnh đã gần đầy (trên 950 MB). Hãy xóa bớt ảnh trước khi tải lên.', { ms: 6000 });
+  fileInput.click();
+}
+
+function enqueue(files, albumId, sourceUrl = null) {
+  files = files.filter(isImageFile);
+  if (!files.length) return toast('Không có file ảnh nào');
+  if (storageUsed() >= CONFIG.BLOCK_AT) return toast('Kho ảnh đã gần đầy (trên 950 MB). Hãy xóa bớt ảnh trước khi tải lên.', { ms: 6000 });
+  for (const f of files) {
+    const job = { id: uid(), file: f, name: f.name && f.name !== 'image.png' ? f.name : 'Ảnh dán', albumId, sourceUrl, status: 'wait', progress: 0, origSize: f.size };
+    S.uploads.push(job); queue.push(job);
+  }
+  $('#uppanel').classList.remove('min');
+  renderUploadPanel(); pump();
+}
+function pump() {
+  while (active < CONFIG.UPLOAD_CONCURRENCY && queue.length) {
+    const job = queue.shift(); active++;
+    runJob(job).finally(() => { active--; renderUploadPanel(); pump(); autoHidePanel(); });
+  }
+}
+async function runJob(job) {
+  try {
+    if (!job.compressed) { job.status = 'compress'; renderUploadPanel(); job.compressed = await compressImage(job.file); job.newSize = job.compressed.full.size + job.compressed.thumb.size; }
+    const c = job.compressed;
+    job.createdAt = job.createdAt || nowIso();
+    const row = {
+      id: job.id, full_path: `full/${job.id}.webp`, thumb_path: `thumb/${job.id}.webp`,
+      width: c.width, height: c.height, size_bytes: job.newSize,
+      original_name: ['Ảnh dán', 'Ảnh từ web'].includes(job.name) ? '' : job.name, note: '', tags: [], source_url: job.sourceUrl || null,
+      created_at: job.createdAt, updated_at: job.createdAt, deleted_at: null,
+    };
+    if (!S.photos.has(job.id)) applyPhoto({ ...row, _status: 'uploading', _progress: 0, _albumId: job.albumId, _local: { thumb: URL.createObjectURL(c.thumb), full: URL.createObjectURL(c.full) } });
+    else applyPhoto({ id: job.id, _status: 'uploading', _progress: 0 });
+    job.status = 'upload'; job.progress = 0; render(); renderUploadPanel();
+    const saved = await api.uploadPhoto({ id: job.id, fullBlob: c.full, thumbBlob: c.thumb, row }, pr => {
+      job.progress = pr;
+      const p = S.photos.get(job.id); if (p) { p._progress = pr; const el = cardEls.get(job.id); if (el) updateCard(el, p); }
+      renderUploadPanel();
+    });
+    applyPhoto({ ...saved, _status: null, _savedAt: Date.now() });
+    if (job.albumId && S.albums.has(job.albumId)) { const ls = await api.addToAlbum(job.albumId, [job.id]); ls.forEach(applyLink); }
+    job.status = 'done';
+  } catch (err) {
+    job.status = 'error'; job.error = err.message || 'Lỗi không rõ';
+    if (S.photos.has(job.id)) applyPhoto({ id: job.id, _status: 'error' });
+  }
+  render();
+}
+function retryUpload(id) {
+  const job = S.uploads.find(j => j.id === id); if (!job || job.status !== 'error') return;
+  if (!job.compressed) return toast('Ảnh này không đọc được, không thể thử lại');
+  job.status = 'wait'; job.error = null; queue.push(job); renderUploadPanel(); pump();
+}
+
+/* Nén ảnh ngay trên trình duyệt → WebP (ảnh lớn ≤2000px + thumbnail 600px) */
+async function compressImage(file) {
+  let src;
+  try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch {
+    try { src = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(file); }); }
+    catch { throw new Error(/hei[cf]$/i.test(file.name) ? 'Trình duyệt không đọc được ảnh HEIC' : 'Không đọc được file ảnh này'); }
+  }
+  const w0 = src.width || src.naturalWidth, h0 = src.height || src.naturalHeight;
+  const s = Math.min(1, CONFIG.FULL_MAX / Math.max(w0, h0));
+  const w = Math.round(w0 * s), h = Math.round(h0 * s);
+  const full = await toWebp(src, w, h, CONFIG.FULL_Q);
+  const ts = Math.min(1, CONFIG.THUMB_W / w0);
+  const thumb = await toWebp(src, Math.round(w0 * ts), Math.round(h0 * ts), CONFIG.THUMB_Q);
+  src.close?.();
+  return { full, thumb, width: w, height: h };
+}
+function toWebp(src, w, h, q) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, 0, w, h);
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('Không nén được ảnh')), 'image/webp', q));
+}
+
+/* ----- Bảng tiến độ tải lên ----- */
+const upPanel = $('#uppanel');
+function renderUploadPanel() {
+  const jobs = S.uploads;
+  if (!jobs.length) { upPanel.classList.remove('show'); return; }
+  upPanel.classList.add('show');
+  const done = jobs.filter(j => j.status === 'done').length, err = jobs.filter(j => j.status === 'error').length;
+  const running = jobs.length - done - err;
+  const head = running ? `Đang tải lên ${done}/${jobs.length}` : err ? `Xong ${done}/${jobs.length} · ${err} lỗi` : `Đã tải lên ${done} ảnh`;
+  const st = j => j.status === 'wait' ? 'Đang chờ' : j.status === 'compress' ? 'Đang nén…' : j.status === 'upload' ? `Đang tải ${Math.round(j.progress * 100)}%` : j.status === 'done' ? 'Xong' : 'Lỗi';
+  const pct = j => j.status === 'done' ? 100 : j.status === 'upload' ? Math.round(j.progress * 100) : j.status === 'compress' ? 5 : 0;
+  upPanel.innerHTML = `<div class="uphead"><span>${head}</span><button data-u="min" aria-label="Thu gọn">${icon(upPanel.classList.contains('min') ? 'left' : 'right', 18)}</button>${running ? '' : `<button data-u="close" aria-label="Đóng">${icon('x', 18)}</button>`}</div>
+  <div class="uplist">${jobs.slice().reverse().map(j => `<div class="upitem ${j.status === 'error' ? 'err' : j.status === 'done' ? 'ok' : ''}">
+    <div class="r1"><span class="nm">${esc(j.name)}</span><span class="st">${st(j)}</span></div>
+    <div class="r2"><span>${fmtBytes(j.origSize)}${j.newSize ? ' → ' + fmtBytes(j.newSize) : ''}</span>${j.status === 'error' ? `<span>${esc(j.error)}${j.compressed ? ` · <button class="retry" data-retry="${j.id}">Thử lại</button>` : ''}</span>` : ''}</div>
+    ${j.status === 'done' || j.status === 'error' ? '' : `<div class="bar"><i style="width:${pct(j)}%"></i></div>`}</div>`).join('')}</div>`;
+}
+upPanel.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.retry) return retryUpload(b.dataset.retry);
+  if (b.dataset.u === 'min') { upPanel.classList.toggle('min'); return renderUploadPanel(); }
+  if (b.dataset.u === 'close') { S.uploads = S.uploads.filter(j => j.status !== 'done' && j.status !== 'error'); dropErrorTemps(); renderUploadPanel(); }
+});
+function dropErrorTemps() { for (const p of [...S.photos.values()]) if (p._status === 'error') removePhotoLocal(p.id); render(); }
+const autoHidePanel = debounce(() => {
+  if (S.uploads.length && S.uploads.every(j => j.status === 'done')) { S.uploads = []; renderUploadPanel(); }
+}, 4000);
+
+window.addEventListener('beforeunload', e => { if (active || queue.length) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ----- Ctrl+V ----- */
+document.addEventListener('paste', e => {
+  const files = [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(isImageFile);
+  if (!files.length) return;
+  e.preventDefault();
+  if (V.open) closeViewer();
+  enqueue(files, currentAlbumId());
+});
+
+/* ----- Kéo-thả từ ngoài vào ----- */
+let dragDepth = 0;
+const dropEl = $('#drop');
+let internalDrag = false;
+window.addEventListener('dragstart', () => { internalDrag = true; });
+window.addEventListener('dragend', () => { internalDrag = false; });
+const isExternalDrag = e => { if (internalDrag) return false; const t = [...(e.dataTransfer?.types || [])]; return t.includes('Files') || t.includes('text/uri-list'); };
+window.addEventListener('dragenter', e => {
+  if (!isExternalDrag(e)) return; e.preventDefault(); dragDepth++;
+  const a = currentAlbumId() && S.albums.get(currentAlbumId());
+  $('#dropSub').textContent = a ? `Ảnh sẽ vào album “${a.name}”` : 'Ảnh sẽ vào Tất cả ảnh';
+  dropEl.classList.add('show');
+});
+window.addEventListener('dragover', e => { if (!isExternalDrag(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+window.addEventListener('dragleave', e => { if (!isExternalDrag(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropEl.classList.remove('show'); });
+window.addEventListener('drop', e => {
+  if (!isExternalDrag(e)) return; e.preventDefault(); dragDepth = 0; dropEl.classList.remove('show');
+  const files = [...e.dataTransfer.files].filter(isImageFile);
+  if (files.length) return enqueue(files, currentAlbumId());
+  // Trang web kia chỉ gửi link → thử tải ảnh về; nếu bị chặn thì hướng dẫn dán
+  const html = e.dataTransfer.getData('text/html') || '', uri = e.dataTransfer.getData('text/uri-list') || '';
+  const url = (html.match(/<img[^>]+src=["']([^"']+)/i)?.[1] || uri.split(/\r?\n/).find(l => l && !l.startsWith('#')) || '').replace(/&amp;/g, '&').trim();
+  const albumId = currentAlbumId();
+  const hint = () => toast('Trang web kia không cho lấy file ảnh. Hãy chuột phải vào ảnh → “Sao chép hình ảnh”, rồi bấm Ctrl+V ở đây.', { ms: 8000 });
+  if (!/^(https?:|data:image\/)/i.test(url)) return hint();
+  fetch(url).then(r => r.ok ? r.blob() : Promise.reject()).then(b => {
+    if (!/^image\//.test(b.type)) throw 0;
+    enqueue([new File([b], 'Ảnh từ web', { type: b.type })], albumId, /^https?:/i.test(url) ? url : null);
+  }).catch(hint);
+});
+
+/* =========================================================================
+   THÔNG BÁO
+   ========================================================================= */
+function toast(msg, { action, onAction, ms = 3500 } = {}) {
+  const box = $('#toasts');
+  while (box.children.length >= 3) box.firstElementChild.remove();
+  const el = document.createElement('div'); el.className = 'toast';
+  el.innerHTML = `<span>${esc(msg)}</span>${action ? `<button>${esc(action)}</button>` : ''}`;
+  if (action) el.querySelector('button').onclick = () => { el.remove(); onAction?.(); };
+  box.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+  return el;
+}
+
+/* =========================================================================
+   TÌM KIẾM
+   ========================================================================= */
+const qInput = $('#q'), qBox = $('#searchBox');
+function setQuery(v) { qInput.value = v; S.query = v.trim(); qBox.classList.toggle('has', !!v); if (S.route.name === 'settings') go('#/'); else render(); }
+const onQuery = debounce(() => setQuery(qInput.value), 120);
+qInput.addEventListener('input', () => { qBox.classList.toggle('has', !!qInput.value); onQuery(); });
+qInput.addEventListener('keydown', e => { if (e.key === 'Escape') { setQuery(''); qInput.blur(); } if (e.key === 'Enter') qInput.blur(); });
+$('#qClear').onclick = e => { e.preventDefault(); setQuery(''); qInput.focus(); };
+
+/* =========================================================================
+   ĐỒNG BỘ (làm mới, nhận thay đổi từ thiết bị khác)
+   ========================================================================= */
+let refreshing = null;
+function refreshAll(showToast) {
+  if (!refreshing) refreshing = doRefresh(showToast).finally(() => { refreshing = null; });
+  return refreshing;
+}
+async function doRefresh(showToast) {
+  if (!api || (!CONFIG.USE_MOCK && !sb)) return;
+  S.sync = 'syncing'; renderSync();
+  try {
+    loadSnapshot(await api.listAll());
+    S.loaded = true; S.loadError = null;
+    S.sync = navigator.onLine && !realtimeDown ? 'ok' : 'offline';
+    if (showToast) toast('Đã làm mới');
+  } catch (err) {
+    S.sync = 'offline';
+    const msg = /failed to fetch|networkerror|load failed/i.test(err.message) ? 'không có mạng, sai SUPABASE_URL, hoặc project Supabase đang tạm dừng' : err.message;
+    if (!S.loaded) S.loadError = msg; else toast('Không làm mới được: ' + msg);
+  }
+  render();
+}
+let realtimeDown = false;
+/* Nhận thay đổi tức thời. Thay đổi do chính máy này làm cũng quay về đây — các hàm apply đều chạy lại an toàn. */
+function startRealtime() {
+  api.subscribe(({ table, type, row, old }) => {
+    if (table === 'photos') { if (type === 'DELETE') removePhotoLocal(old.id); else if (!(type === 'UPDATE' && savingCount.has(row.id))) applyPhoto(row); }
+    if (table === 'albums') type === 'DELETE' ? removeAlbumLocal(old.id) : applyAlbum(row);
+    if (table === 'album_photos') type === 'DELETE' ? removeLink(old.album_id, old.photo_id) : applyLink(row);
+    render();
+  }, status => {
+    if (status === 'SUBSCRIBED') {
+      if (realtimeDown) { realtimeDown = false; refreshAll(false); }   // bù các thay đổi bị lỡ khi mất kết nối
+      else { S.sync = navigator.onLine ? 'ok' : 'offline'; renderSync(); }
+    } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
+      realtimeDown = true; S.sync = 'offline'; renderSync();
+    }
+  });
+}
+window.addEventListener('online', () => refreshAll(false));
+window.addEventListener('offline', () => { S.sync = 'offline'; renderSync(); });
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); flushDeletes(); }
+  else if (hiddenAt && Date.now() - hiddenAt > 30e3) refreshAll(false);
+});
+
+/* Kéo xuống để làm mới (điện thoại) */
+(() => {
+  const el = $('#ptr'); el.innerHTML = icon('refresh', 20);
+  let y0 = null, dy = 0;
+  window.addEventListener('touchstart', e => { y0 = (window.scrollY <= 0 && !V.open && !layers.length && !S.selecting) ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+  window.addEventListener('touchmove', e => {
+    if (y0 === null) return; dy = e.touches[0].clientY - y0; if (dy <= 0) return;
+    el.style.transform = `translateY(${Math.min(dy * .5, 70)}px) rotate(${dy * 2}deg)`; el.style.opacity = Math.min(1, dy / 80);
+    el.classList.toggle('ready', dy > 100);
+  }, { passive: true });
+  window.addEventListener('touchend', async () => {
+    if (y0 === null) return; y0 = null;
+    if (dy > 100) { el.classList.add('spin'); el.style.transform = 'translateY(60px)'; await refreshAll(true); el.classList.remove('spin'); }
+    el.style.transform = ''; el.style.opacity = 0; el.classList.remove('ready');
+  });
+})();
+
+/* =========================================================================
+   NÚT BẤM CHUNG + PHÍM TẮT
+   ========================================================================= */
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-go]'); if (g) return go(g.dataset.go);
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const act = a.dataset.act;
+  if (act === 'upload') return openFilePicker();
+  if (act === 'clearq') return setQuery('');
+  if (act === 'newalbum') return newAlbumFlow();
+  if (act === 'refresh') return (!CONFIG.USE_MOCK && !sb) ? location.reload() : refreshAll(true);
+  if (act === 'orphans') {
+    a.disabled = true; a.textContent = 'Đang kiểm tra…';
+    api.cleanupOrphans().then(n => toast(n ? `Đã xóa ${n} file thừa` : 'Không có file thừa nào'), err => toast('Lỗi: ' + err.message))
+      .finally(() => { a.disabled = false; a.textContent = 'Dọn file thừa'; });
+    return;
+  }
+  if (act === 'backup') return backupFlow(a);
+  if (act === 'mock500') { seedMock(500); refreshAll(false).then(() => toast('Đã thêm 500 ảnh mẫu')); return; }
+  if (act === 'mockremote') return simulateRemote();
+  if (act === 'mockreset') return location.reload();
+});
+document.addEventListener('keydown', e => {
+  const typing = e.target.matches?.('input,textarea');
+  if (layers.slice(-1)[0]?.isSheet) { if (e.key === 'Escape') popLayer(); return; }
+  if (V.open) {
+    if (e.key === 'Escape') { if (typing) e.target.blur(); else if (layers.length === 1) closeViewer(); return; }
+    if (!typing && e.key === 'ArrowRight') return stepViewer(1);
+    if (!typing && e.key === 'ArrowLeft') return stepViewer(-1);
+  }
+  if (typing) return;
+  if (e.key === 'Escape') { closeMenu(); clearSelection(); }
+  if (e.key === '/' && !V.open && !layers.length) { e.preventDefault(); qInput.focus(); }
+});
+
+function simulateRemote() {
+  toast('Sẽ có ảnh mới từ “thiết bị khác” sau 1 giây…');
+  setTimeout(() => {
+    const row = makeMockPhoto(nowIso());
+    row.note = 'Ảnh thêm từ điện thoại'; row.tags = ['từ điện thoại'];
+    mockDb.photos.unshift(clone(row));
+    mockSubs.forEach(h => h({ table: 'photos', type: 'INSERT', row }));
+    toast('1 ảnh mới từ thiết bị khác');
+  }, 1000);
+}
+
+/* =========================================================================
+   KHỞI ĐỘNG
+   ========================================================================= */
+(async function init() {
+  // Gắn icon vào nút điều hướng
+  const navIcons = { '#/': 'home', '#/albums': 'albums', '#/settings': 'settings' };
+  $$('.navbtn[data-go]').forEach(b => b.innerHTML = icon(navIcons[b.dataset.go], 24));
+  $$('.navbtn[data-act="upload"]').forEach(b => b.innerHTML = icon('plus', 26));
+  $('.search .si').innerHTML = icon('search', 20);
+  $('#qClear').innerHTML = icon('x', 18);
+  $('#topUpload').innerHTML = icon('upload', 18) + ' Tải ảnh lên';
+  $('#drop .ic').innerHTML = icon('upload', 34);
+  $('#mockPill').style.display = CONFIG.USE_MOCK ? '' : 'none';
+  window.addEventListener('hashchange', mountRoute);
+  window.addEventListener('resize', closeMenu);
+  if (!navigator.onLine) S.sync = 'offline';
+  mountRoute();
+  if (!CONFIG.USE_MOCK) {
+    try {
+      await loadScript(SB_JS);
+      sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    } catch (err) { S.loadError = err.message; S.sync = 'offline'; render(); return; }
+  }
+  await refreshAll(false);
+  startRealtime();
+})();
+</script>
+</body>
+</html>
