@@ -6,6 +6,27 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#ffffff">
 <title>Thư viện ảnh</title>
+<script>
+/* Samsung Galaxy S23 Ultra (điện thoại dọc, màn hình rộng 384px theo CSS): bật class "s23u" để dùng bố cục riêng bên dưới.
+   Các thiết bị khác không có class này nên giao diện giữ nguyên. Dùng screen.width (không đổi) thay vì bề rộng trang,
+   vì khi trang bị tràn ngang thì bề rộng trang tự phình ra và điều kiện sẽ sai. */
+(function () {
+  var de = document.documentElement, model = /SM-S918/i.test(navigator.userAgent);
+  var SHORT = 'Tìm ảnh, tag, album…', ph0 = '';
+  function match() {
+    var coarse = matchMedia('(pointer:coarse)').matches, side = Math.min(screen.width, screen.height);
+    return coarse && (model || (side >= 380 && side <= 388));
+  }
+  function apply() {
+    var on = match(); de.classList.toggle('s23u', on);
+    var q = document.getElementById('q'); if (!q) return;
+    if (!ph0) ph0 = q.getAttribute('placeholder') || '';
+    q.setAttribute('placeholder', on ? SHORT : ph0);   // ô tìm kiếm hẹp hơn nên dùng gợi ý ngắn
+  }
+  apply(); addEventListener('resize', apply); document.addEventListener('DOMContentLoaded', apply);
+  try { navigator.userAgentData.getHighEntropyValues(['model']).then(function (d) { if (/SM-S918/i.test(d.model || '')) { model = true; apply(); } }, function () {}); } catch (e) {}
+})();
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234f46e5'/%3E%3Cstop offset='1' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3CclipPath id='c'%3E%3Crect x='15' y='9' width='24' height='28' rx='5'/%3E%3C/clipPath%3E%3C/defs%3E%3Crect width='48' height='48' rx='13' fill='url(%23g)'/%3E%3Crect x='9' y='13' width='22' height='26' rx='5' fill='%23fff' opacity='.38' transform='rotate(-8 20 26)'/%3E%3Crect x='15' y='9' width='24' height='28' rx='5' fill='%23fff'/%3E%3Ccircle cx='32' cy='17' r='3' fill='%2306b6d4'/%3E%3Cpath clip-path='url(%23c)' d='M15 38V31l8-8 6 6 4-4 6 6v7z' fill='%234f46e5'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -319,6 +340,26 @@ body.selecting .toasts{bottom:88px}
   .sheet-bg{place-items:end stretch}
   .sheet{width:100%;max-height:85vh;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + var(--safe-b))}
   .album-head{margin-bottom:18px}
+}
+
+/* ---------- Samsung Galaxy S23 Ultra (class s23u, xem script đầu trang) ---------- */
+@media (max-width:767px){
+  /* Gốc lỗi: ô tìm kiếm không co lại được nên trang rộng hơn màn hình (~448px), thanh dưới và khung xem ảnh bị lệch ra ngoài */
+  html.s23u,html.s23u body{overflow-x:clip}
+  html.s23u .topbar{padding:10px 12px;gap:8px}
+  html.s23u .search{min-width:0;height:44px;padding:0 6px 0 14px;gap:8px}
+  html.s23u .search input{width:100%;min-width:0;font-size:15px}
+  html.s23u .reel{--cw:32px;--ih:23px;--pitch:9px;width:108px;height:50px;margin:-3px 0;border-radius:14px}
+  html.s23u .sync{padding:0 2px}
+  html.s23u .view{padding:4px 12px 150px}
+  html.s23u .banner{margin:0 12px 10px}
+  html.s23u .view-head{margin:8px 0 14px}
+  html.s23u .albums{gap:18px 8px}
+  html.s23u .acard .amore{top:6px;right:6px;width:30px;height:30px}
+  html.s23u .set-card{padding:16px;margin-bottom:12px}
+  html.s23u .bottomnav{justify-content:space-evenly}
+  html.s23u .selbar{left:12px;right:12px}
+  html.s23u .uppanel{left:12px;right:12px}
 }
 </style>
 </head>
