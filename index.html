@@ -239,16 +239,34 @@ body.selecting .toasts{bottom:88px}
 .viewer{position:fixed;inset:0;z-index:60;background:#0e0e0e;display:none}
 .viewer.open{display:flex}
 .v-stage{position:relative;flex:1;min-width:0;overflow:hidden;touch-action:none}
-/* Ảnh luôn nằm gọn trong khung, giữ đúng tỉ lệ, không bị cắt */
-.v-img{position:absolute;top:72px;left:76px;width:calc(100% - 152px);height:calc(100% - 96px);object-fit:contain;user-select:none;-webkit-user-drag:none;transition:transform .25s ease, opacity .2s}
-.v-btn{position:absolute;width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;transition:background .15s;z-index:2}
-.v-btn:hover{background:rgba(255,255,255,.25)}
+/* Ảnh phủ toàn màn hình, giữ đúng tỉ lệ, không bị cắt */
+.v-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;transition:transform .25s ease, opacity .2s}
+.v-btn{position:absolute;width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;transition:background .15s;z-index:2}
+.v-btn:hover{background:rgba(255,255,255,.26)}
 .v-close{top:16px;left:16px}
 .v-prev{left:16px;top:50%;margin-top:-22px}
 .v-next{right:16px;top:50%;margin-top:-22px}
 .v-btn[disabled]{opacity:.25;pointer-events:none}
-.v-count{position:absolute;top:26px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:14px;font-weight:600}
-.v-panel{width:380px;flex:none;background:#fff;overflow:auto;padding:20px 22px 40px}
+.v-count{position:absolute;top:22px;left:50%;transform:translateX(-50%);z-index:2;padding:6px 14px;border-radius:16px;background:rgba(0,0,0,.32);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:rgba(255,255,255,.85);font-size:14px;font-weight:600}
+/* Popup thông tin ảnh: ẩn mặc định, mở bằng nút tròn góc dưới phải */
+.v-panel{position:absolute;z-index:4;right:14px;bottom:calc(14px + 48px + 12px + var(--safe-b));width:380px;max-width:calc(100% - 28px);max-height:min(640px,calc(100% - 100px));overflow:auto;overscroll-behavior:contain;background:#fff;border-radius:22px;padding:20px 22px 28px;box-shadow:0 24px 64px rgba(0,0,0,.5);transform-origin:100% 100%;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(10px) scale(.96);transition:opacity .2s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s linear .24s}
+.viewer.info .v-panel{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .2s ease,transform .24s cubic-bezier(.2,.8,.2,1),visibility 0s}
+.v-actions .v-hide{margin-left:auto}
+/* Nút tròn glass: đối xứng đường chéo với nút đóng ở góc trên trái */
+.v-info-btn{position:absolute;z-index:5;right:14px;bottom:calc(14px + var(--safe-b));width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,rgba(255,255,255,.26),rgba(255,255,255,.07));-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 24px rgba(0,0,0,.35);transition:background .25s,border-color .25s,transform .15s}
+.v-info-btn:hover{background:linear-gradient(145deg,rgba(255,255,255,.36),rgba(255,255,255,.12))}
+.v-info-btn:active{transform:scale(.94)}
+.v-info-btn:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.viewer.info .v-info-btn{background:linear-gradient(145deg,rgba(79,70,229,.58),rgba(6,182,212,.4));border-color:rgba(255,255,255,.4)}
+.v-info-btn .ic{grid-area:1/1;display:grid;transition:opacity .2s,transform .25s}
+.v-info-btn .i-x{opacity:0;transform:rotate(-80deg) scale(.5)}
+.viewer.info .v-info-btn .i-info{opacity:0;transform:rotate(80deg) scale(.5)}
+.viewer.info .v-info-btn .i-x{opacity:1;transform:none}
+@media (min-width:768px){
+  .v-next{transition:background .15s,right .25s ease}
+  .viewer.info .v-next{right:calc(14px + 380px + 14px)}
+}
+@media (prefers-reduced-motion:reduce){.v-panel,.v-info-btn,.v-info-btn .ic,.v-next{transition:none!important}}
 .v-actions{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap}
 .f-label{display:block;font-size:13px;font-weight:700;color:#444;margin:18px 0 6px}
 .f-in{width:100%;border:1px solid #d6d6d6;border-radius:12px;padding:10px 12px;outline:0;font-size:15px;background:#fff;resize:vertical}
@@ -329,14 +347,14 @@ body.selecting .toasts{bottom:88px}
   .toasts{bottom:calc(76px + var(--safe-b))}
   body.selecting .toasts{bottom:calc(132px + var(--safe-b))}
   .uppanel{left:8px;right:8px;width:auto;bottom:calc(72px + var(--safe-b));max-height:42vh}
-  .viewer{flex-direction:column;overflow-y:auto;overscroll-behavior:contain}
-  .v-stage{flex:none;height:72vh;height:72svh}
-  .v-img{top:64px;left:0;width:100%;height:calc(100% - 90px)}
+  .viewer{overflow:hidden}
+  .v-stage{flex:none;width:100%;height:100%}
   .v-prev,.v-next{display:none}
   .v-close{top:12px;left:12px}
-  .v-count{top:22px}
-  .v-panel{width:auto;flex:none;border-radius:22px 22px 0 0;margin-top:-18px;position:relative;min-height:60vh;padding:16px 16px 60px}
-  .v-panel::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:#ccc;margin:0 auto 12px}
+  .v-count{top:18px}
+  .v-info-btn{right:10px;bottom:calc(10px + var(--safe-b))}
+  .v-panel{left:10px;right:10px;width:auto;max-width:none;bottom:calc(10px + 48px + 10px + var(--safe-b));max-height:min(72vh,calc(100% - 96px));padding:16px 16px 24px}
+  .v-actions .v-hide{display:none}
   .sheet-bg{place-items:end stretch}
   .sheet{width:100%;max-height:85vh;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + var(--safe-b))}
   .album-head{margin-bottom:18px}
@@ -479,6 +497,7 @@ const P = {
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   more: '<circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
   left: '<path d="m15 5-7 7 7 7"/>',
   right: '<path d="m9 5 7 7-7 7"/>',
@@ -1625,7 +1644,7 @@ async function backupFlow(btn) {
 /* =========================================================================
    XEM ẢNH LỚN
    ========================================================================= */
-const V = { open: false, list: [], idx: 0, id: null };
+const V = { open: false, info: false, list: [], idx: 0, id: null };
 const viewerEl = $('#viewer');
 const savedFlash = debounce(() => flashSaved(''), 1800);
 
@@ -1636,11 +1655,18 @@ function openViewer(id) {
   V.idx = V.list.indexOf(id); V.id = id;
   if (!V.open) {
     V.open = true; viewerEl.classList.add('open'); document.body.classList.add('noscroll');
-    pushLayer(() => { V.open = false; viewerEl.classList.remove('open'); viewerEl.innerHTML = ''; document.body.classList.remove('noscroll'); });
+    pushLayer(() => { V.open = false; V.info = false; viewerEl.classList.remove('open', 'info'); viewerEl.innerHTML = ''; document.body.classList.remove('noscroll'); });
   }
   renderViewer();
 }
 function closeViewer() { popLayer(); }
+/* Bật/tắt popup thông tin ảnh (mỗi lần mở ảnh mới luôn bắt đầu ở chế độ toàn màn hình) */
+function setInfo(on) {
+  V.info = !!on; viewerEl.classList.toggle('info', V.info);
+  const b = $('.v-info-btn', viewerEl);
+  if (b) { b.setAttribute('aria-expanded', V.info); b.setAttribute('aria-label', V.info ? 'Ẩn thông tin ảnh' : 'Xem thông tin ảnh'); }
+  if (!V.info && $('#vPanel', viewerEl)?.contains(document.activeElement)) document.activeElement.blur();
+}
 function stepViewer(d) {
   const i = V.idx + d; if (i < 0 || i >= V.list.length) return;
   V.idx = i; V.id = V.list[i]; renderViewer();
@@ -1669,11 +1695,12 @@ function renderViewer(keepImage) {
     <button class="v-btn v-prev" data-v="prev" aria-label="Ảnh trước" ${V.idx === 0 ? 'disabled' : ''}>${icon('left', 24)}</button>
     <button class="v-btn v-next" data-v="next" aria-label="Ảnh sau" ${V.idx >= V.list.length - 1 ? 'disabled' : ''}>${icon('right', 24)}</button>
   </div>
-  <div class="v-panel">
+  <div class="v-panel" id="vPanel" role="dialog" aria-label="Thông tin ảnh">
     <div class="v-actions">
       <button class="btn" data-v="album">${icon('albumAdd', 18)} Thêm vào album</button>
       <button class="btn icon" data-v="download" title="Tải về máy" aria-label="Tải về máy">${icon('download', 18)}</button>
       <button class="btn icon danger" data-v="delete" title="Xóa ảnh" aria-label="Xóa ảnh">${icon('trash', 18)}</button>
+      <button class="btn icon v-hide" data-v="info-hide" title="Ẩn thông tin" aria-label="Ẩn thông tin">${icon('x', 18)}</button>
     </div>
     <label class="f-label" for="fNote">Ghi chú</label>
     <textarea class="f-in" id="fNote" rows="3" placeholder="Thêm ghi chú cho ảnh…">${esc(p.note)}</textarea>
@@ -1686,7 +1713,9 @@ function renderViewer(keepImage) {
     <div class="v-albums" id="vAlbums"></div>
     <div class="v-saved">${esc(V.status || '')}</div>
     <div class="v-info">${p.width} × ${p.height} px · ${fmtBytes(p.size_bytes)}<br>Tải lên ${fmtDate(p.created_at)}${p.original_name ? '<br>' + esc(p.original_name) : ''}</div>
-  </div>`;
+  </div>
+  <button class="v-info-btn" data-v="info" aria-controls="vPanel" aria-expanded="${!!V.info}" aria-label="${V.info ? 'Ẩn thông tin ảnh' : 'Xem thông tin ảnh'}"><span class="ic i-info">${icon('info', 22)}</span><span class="ic i-x">${icon('x', 22)}</span></button>`;
+  viewerEl.classList.toggle('info', !!V.info);
   if (keep) { viewerEl.scrollTop = scroll; $('.v-panel', viewerEl).scrollTop = pscroll; }
   // Ảnh: hiện thumbnail ngay, ảnh lớn tải xong thì thay
   const img = $('.v-img', viewerEl);
@@ -1760,6 +1789,8 @@ function bindViewerInputs(id) {
     if (t.dataset.v === 'close') return closeViewer();
     if (t.dataset.v === 'prev') return stepViewer(-1);
     if (t.dataset.v === 'next') return stepViewer(1);
+    if (t.dataset.v === 'info') return setInfo(!V.info);
+    if (t.dataset.v === 'info-hide') return setInfo(false);
     if (t.dataset.v === 'album') return addToAlbumFlow([id]);
     if (t.dataset.v === 'download') return downloadPhoto(id);
     if (t.dataset.v === 'delete') return deleteFlow([id]);
@@ -1774,15 +1805,17 @@ function bindViewerInputs(id) {
 /* Vuốt trên điện thoại: trái/phải = ảnh khác, xuống = đóng, lên = xem chi tiết */
 function bindSwipe() {
   const stage = $('#vStage', viewerEl), img = $('.v-img', viewerEl);
-  let s = null;
+  let s = null, moved = false;
+  stage.onclick = e => { if (moved) { moved = false; return; } if (V.info && !e.target.closest('.v-btn')) setInfo(false); };
   stage.onpointerdown = e => {
     if (e.pointerType === 'mouse' || e.target.closest('.v-btn')) return;
-    s = { x: e.clientX, y: e.clientY, axis: null, dx: 0, dy: 0 };
+    s = { x: e.clientX, y: e.clientY, axis: null, dx: 0, dy: 0 }; moved = false;
     img.style.transition = 'none';
   };
   stage.onpointermove = e => {
     if (!s) return;
     s.dx = e.clientX - s.x; s.dy = e.clientY - s.y;
+    if (Math.hypot(s.dx, s.dy) > 10) moved = true;
     if (!s.axis && Math.hypot(s.dx, s.dy) > 10) s.axis = Math.abs(s.dx) > Math.abs(s.dy) ? 'x' : 'y';
     if (s.axis === 'x') img.style.transform = `translateX(${s.dx}px)`;
     if (s.axis === 'y' && s.dy > 0 && viewerEl.scrollTop <= 0) {
@@ -1798,8 +1831,8 @@ function bindSwipe() {
       const d = dx < 0 ? 1 : -1;
       if (V.list[V.idx + d]) { img.style.transform = `translateX(${dx < 0 ? -40 : 40}px)`; img.style.opacity = 0; return setTimeout(() => stepViewer(d), 120); }
     }
-    if (axis === 'y' && dy > 110 && viewerEl.scrollTop <= 0) return closeViewer();
-    if (axis === 'y' && dy < -60) viewerEl.scrollTo({ top: stage.offsetHeight - 120, behavior: 'smooth' });
+    if (axis === 'y' && dy > 110) { if (V.info) { img.style.transform = ''; return setInfo(false); } return closeViewer(); }
+    if (axis === 'y' && dy < -60) setInfo(true);
     img.style.transform = '';
   };
   stage.onpointerup = end; stage.onpointercancel = end;
@@ -2081,7 +2114,8 @@ document.addEventListener('keydown', e => {
   const typing = e.target.matches?.('input,textarea');
   if (layers.slice(-1)[0]?.isSheet) { if (e.key === 'Escape') popLayer(); return; }
   if (V.open) {
-    if (e.key === 'Escape') { if (typing) e.target.blur(); else if (layers.length === 1) closeViewer(); return; }
+    if (e.key === 'Escape') { if (typing) e.target.blur(); else if (layers.length === 1) { if (V.info) setInfo(false); else closeViewer(); } return; }
+    if (!typing && (e.key === 'i' || e.key === 'I')) return setInfo(!V.info);
     if (!typing && e.key === 'ArrowRight') return stepViewer(1);
     if (!typing && e.key === 'ArrowLeft') return stepViewer(-1);
   }
