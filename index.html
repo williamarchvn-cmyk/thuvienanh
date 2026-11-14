@@ -180,6 +180,21 @@ body.selecting .thumb{cursor:pointer}
 .album-head .row{display:flex;gap:8px;justify-content:center;margin-top:14px}
 
 /* ---------- Cài đặt ---------- */
+/* ---------- Trang Tệp ---------- */
+.flist{display:flex;flex-direction:column;gap:8px;max-width:980px}
+.frow{display:flex;align-items:center;gap:14px;padding:10px 10px 10px 12px;border:1px solid var(--line);border-radius:16px;background:#fff;cursor:pointer;transition:background .15s,box-shadow .15s}
+@media (hover:hover){.frow:hover{background:#fafafa;box-shadow:0 2px 10px rgba(0,0,0,.05)}}
+.ficon{position:relative;flex:none;width:42px;height:50px;border-radius:9px 15px 9px 9px;background:var(--fc,#6b7280);color:#fff;display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px;font-size:10.5px;font-weight:800;letter-spacing:.3px;overflow:hidden}
+.ficon::before{content:"";position:absolute;top:0;right:0;width:14px;height:14px;background:rgba(255,255,255,.4);border-bottom-left-radius:6px}
+.fmain{flex:1;min-width:0}
+.fname{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .sub{font-size:13px}
+.fbar{height:4px;border-radius:2px;background:var(--chip);margin-top:6px;overflow:hidden}
+.fbar i{display:block;height:100%;background:#111;transition:width .2s}
+.frow.error .sub{color:var(--danger)}
+.frow .btn.icon{flex:none;width:38px;height:38px}
+.frow .more{flex:none}
+.fnote{max-width:980px;margin:0 0 14px;color:var(--muted);font-size:13px}
 .set-card{max-width:720px;border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin-bottom:16px}
 .set-card h2{font-size:17px;margin:0 0 4px}
 .set-card p{margin:4px 0 12px;color:var(--muted);font-size:14px}
@@ -396,7 +411,8 @@ body.selecting .toasts{bottom:88px}
 <aside class="sidebar" aria-label="Điều hướng">
   <button class="navbtn" data-go="#/" title="Tất cả ảnh" aria-label="Tất cả ảnh"></button>
   <button class="navbtn" data-go="#/albums" title="Album" aria-label="Album"></button>
-  <button class="navbtn" data-act="upload" title="Tải ảnh lên" aria-label="Tải ảnh lên"></button>
+  <button class="navbtn" data-go="#/files" title="Tệp tài liệu" aria-label="Tệp tài liệu"></button>
+  <button class="navbtn" data-act="upload" title="Tải lên" aria-label="Tải lên"></button>
   <div class="grow"></div>
   <button class="navbtn" data-go="#/settings" title="Cài đặt" aria-label="Cài đặt"></button>
 </aside>
@@ -423,11 +439,13 @@ body.selecting .toasts{bottom:88px}
 <nav class="bottomnav" aria-label="Điều hướng">
   <button class="navbtn" data-go="#/" aria-label="Tất cả ảnh"></button>
   <button class="navbtn" data-go="#/albums" aria-label="Album"></button>
-  <button class="navbtn plus" data-act="upload" aria-label="Tải ảnh lên"></button>
+  <button class="navbtn plus" data-act="upload" aria-label="Tải lên"></button>
+  <button class="navbtn" data-go="#/files" aria-label="Tệp tài liệu"></button>
   <button class="navbtn" data-go="#/settings" aria-label="Cài đặt"></button>
 </nav>
 
 <input type="file" id="fileInput" accept="image/*" multiple hidden>
+<input type="file" id="docInput" multiple hidden>
 <div class="drop" id="drop"><div class="box"><div class="ic"></div><h2>Thả ảnh vào đây</h2><div class="sub" id="dropSub"></div></div></div>
 <div class="selbar" id="selbar"></div>
 <div class="viewer" id="viewer"></div>
@@ -518,10 +536,38 @@ const P = {
   image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
   select: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
   open: '<path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   up: '<path d="M12 19V6M6 11l6-6 6 6"/><path d="M5 21h14"/>',
   down: '<path d="M12 5v13M6 13l6 6 6-6"/><path d="M5 3h14"/>',
 };
 const icon = (n, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
+
+/* =========================================================================
+   TỆP TÀI LIỆU: các định dạng nhận, màu nhãn, cách mở xem
+   Muốn thêm định dạng: thêm 1 dòng ở đây VÀ thêm mime tương ứng vào bucket "files" (schema.sql, mục 8).
+   ========================================================================= */
+const DOC_TYPES = {
+  pdf: ['application/pdf', '#e5484d'],
+  doc: ['application/msword', '#2b6cd8'], docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', '#2b6cd8'],
+  rtf: ['application/rtf', '#2b6cd8'], odt: ['application/vnd.oasis.opendocument.text', '#2b6cd8'],
+  xls: ['application/vnd.ms-excel', '#1f9d55'], xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '#1f9d55'],
+  csv: ['text/csv', '#1f9d55'], ods: ['application/vnd.oasis.opendocument.spreadsheet', '#1f9d55'],
+  ppt: ['application/vnd.ms-powerpoint', '#e8590c'], pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation', '#e8590c'],
+  odp: ['application/vnd.oasis.opendocument.presentation', '#e8590c'],
+  txt: ['text/plain', '#6b7280'], md: ['text/markdown', '#6b7280'],
+  zip: ['application/zip', '#8b5cf6'], rar: ['application/vnd.rar', '#8b5cf6'], '7z': ['application/x-7z-compressed', '#8b5cf6'],
+  dwg: ['application/octet-stream', '#0e7490'], dxf: ['application/octet-stream', '#0e7490'], skp: ['application/octet-stream', '#0e7490'],
+};
+const DOC_MAX = 50 * 1024 * 1024;   // gói Free của Supabase: tối đa 50 MB mỗi tệp
+const OFFICE_VIEW = new Set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']);   // xem online bằng Microsoft Office Viewer (miễn phí)
+const BROWSER_VIEW = new Set(['pdf']);                                         // trình duyệt tự mở được
+const extOf = name => (String(name || '').match(/\.([a-z0-9]{1,5})$/i)?.[1] || '').toLowerCase();
+const isDocFile = f => f && !!DOC_TYPES[extOf(f.name)];
+const isVideoFile = f => f && (/^video\//.test(f.type) || /\.(mp4|mov|m4v|avi|mkv|webm|3gp)$/i.test(f.name || ''));
+const docColor = ext => DOC_TYPES[ext]?.[1] || '#6b7280';
+const DOC_ACCEPT = Object.keys(DOC_TYPES).map(e => '.' + e).join(',');
 
 /* =========================================================================
    DỮ LIỆU GIẢ LẬP + API GIẢ LẬP
@@ -557,7 +603,8 @@ function makeMockPhoto(createdAt) {
   };
 }
 
-const mockDb = { photos: [], albums: [], links: [] };
+const mockDb = { photos: [], albums: [], links: [], files: [] };
+const MOCK_FILE_URLS = {};
 const mockSubs = [];
 const mockFlags = { failRate: 0 };
 
@@ -645,6 +692,18 @@ const mockApi = {
     const set = new Set(photoIds);
     mockDb.links = mockDb.links.filter(l => !(l.album_id === albumId && set.has(l.photo_id)));
   },
+  /** Tải 1 tệp tài liệu lên kho rồi ghi 1 dòng files */
+  async uploadDoc({ file, row }, onProgress) {
+    for (let i = 1; i <= 8; i++) { await sleep(60 + Math.random() * 80); onProgress(i / 8); if (i === 4 && Math.random() < mockFlags.failRate) throw new Error('Mất kết nối khi tải lên'); }
+    MOCK_FILE_URLS[row.id] = URL.createObjectURL(file);
+    mockDb.files.unshift(clone(row)); return clone(row);
+  },
+  async updateFile(id, patch) {
+    await sleep(120);
+    const f = mockDb.files.find(x => x.id === id); if (!f) throw new Error('Tệp không còn tồn tại');
+    Object.assign(f, patch, { updated_at: nowIso() }); return clone(f);
+  },
+  async deleteFiles(rows) { await sleep(150); const ids = new Set(rows.map(r => r.id)); mockDb.files = mockDb.files.filter(f => !ids.has(f.id)); },
   /** Xóa file trong kho không còn dòng photos tương ứng; trả về số file đã xóa */
   async cleanupOrphans() { await sleep(900); return 0; },
   /** Nhận thay đổi từ thiết bị khác: handler({table, type:'INSERT'|'UPDATE'|'DELETE', row, old}) */
@@ -679,21 +738,25 @@ async function restAll(table, order) {
   }
 }
 /** Tải 1 file lên kho bằng XHR để có % tiến độ */
-function uploadFile(path, blob, onProgress) {
+function uploadFile(path, blob, onProgress) { return uploadObject(CONFIG.BUCKET, path, blob, 'image/webp', onProgress); }
+function uploadObject(bucket, path, blob, contentType, onProgress) {
   return new Promise((res, rej) => {
     const x = new XMLHttpRequest();
-    x.open('POST', `${CONFIG.SUPABASE_URL}/storage/v1/object/${CONFIG.BUCKET}/${path}`);
+    x.open('POST', `${CONFIG.SUPABASE_URL}/storage/v1/object/${bucket}/${path}`);
     x.setRequestHeader('apikey', CONFIG.SUPABASE_ANON_KEY);
     x.setRequestHeader('Authorization', 'Bearer ' + CONFIG.SUPABASE_ANON_KEY);
     x.setRequestHeader('x-upsert', 'false');
     x.setRequestHeader('cache-control', 'max-age=31536000');
-    x.setRequestHeader('content-type', 'image/webp');
-    x.timeout = 120000;
+    x.setRequestHeader('content-type', contentType);
+    x.timeout = Math.max(120000, blob.size / 40);   // tệp lớn được chờ lâu hơn (tính theo mạng chậm ~40 KB/s)
     x.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
     x.onload = () => {
       if (x.status >= 200 && x.status < 300) return res();
       let msg = x.responseText; try { const j = JSON.parse(msg); msg = j.message || j.error || msg; } catch {}
       if (/duplicate|already exists/i.test(msg)) return res();   // thử lại sau khi file đã lên → coi như xong
+      if (x.status === 413 || /maximum allowed size|too large/i.test(msg)) return rej(new Error('Tệp vượt quá 50 MB'));
+      if (/bucket not found/i.test(msg)) return rej(new Error('Chưa có kho "' + bucket + '" — cần chạy lại schema.sql'));
+      if (/mime type/i.test(msg)) return rej(new Error('Kho chưa cho phép định dạng này — cần chạy lại schema.sql'));
       rej(new Error(`Kho ảnh báo lỗi ${x.status}: ${msg}`));
     };
     x.onerror = () => rej(new Error('Mất kết nối khi tải lên'));
@@ -703,16 +766,18 @@ function uploadFile(path, blob, onProgress) {
 }
 const pathsOf = id => [`full/${id}.webp`, `thumb/${id}.webp`];
 
+const DOC_BUCKET = 'files';
 const albumTop = new Map();   // album -> vị trí lớn nhất đã cấp
 const realApi = {
   async listAll() {
     // Gọi thẳng REST bằng fetch → chạy song song với việc tải thư viện Supabase, không phải chờ
-    const [photos, albums, links] = await Promise.all([
+    const [photos, albums, links, files] = await Promise.all([
       restAll('photos', 'created_at.desc,id.asc'),
       restAll('albums', 'created_at.asc,id.asc'),
       restAll('album_photos', 'album_id.asc,photo_id.asc'),
+      restAll('files', 'created_at.desc,id.asc').then(r => { S.filesMissing = false; return r; }, () => { S.filesMissing = true; return []; }),   // chưa chạy SQL phần Tệp → app ảnh vẫn chạy bình thường
     ]);
-    return { photos, albums, links };
+    return { photos, albums, links, files };
   },
   async uploadPhoto({ fullBlob, thumbBlob, row }, onProgress) {
     // Tải thumbnail và ảnh lớn CÙNG LÚC
@@ -772,7 +837,41 @@ const realApi = {
   async removeFromAlbum(albumId, photoIds) {
     for (const part of chunks(photoIds, 100)) unwrap(await sb.from('album_photos').delete().eq('album_id', albumId).in('photo_id', part));
   },
+  async uploadDoc({ file, row }, onProgress) {
+    await uploadObject(DOC_BUCKET, row.path, file, row.mime, p => onProgress(p * .97));
+    try { const saved = unwrap(await sb.from('files').insert(row).select().single()); onProgress(1); return saved; }
+    catch (err) {
+      await sb.storage.from(DOC_BUCKET).remove([row.path]).catch(() => {});
+      if (/files.*(does not exist|schema cache)|relation .*files/i.test(err.message)) throw new Error('Chưa có bảng "files" — cần chạy lại schema.sql');
+      throw err;
+    }
+  },
+  async updateFile(id, patch) {
+    const rows = unwrap(await sb.from('files').update(patch).eq('id', id).select());
+    if (!rows.length) throw new Error('Tệp không còn tồn tại');
+    return rows[0];
+  },
+  async deleteFiles(rows) {
+    for (const part of chunks(rows, 100)) {
+      unwrap(await sb.from('files').delete().in('id', part.map(r => r.id)));
+      await sb.storage.from(DOC_BUCKET).remove(part.map(r => r.path)).catch(() => {});
+    }
+  },
   async cleanupOrphans() {
+    let docStale = 0;
+    try {   // tệp tài liệu thừa
+      const fids = new Set((await fetchAllRows('files', [['id', true]])).map(f => f.id)), stale = [];
+      for (let offset = 0; ; offset += 1000) {
+        const list = unwrap(await sb.storage.from(DOC_BUCKET).list('docs', { limit: 1000, offset, sortBy: { column: 'name', order: 'asc' } }));
+        for (const f of list) { const id = f.name.replace(/\.[^.]*$/, ''); if (f.id && !fids.has(id) && (!f.created_at || Date.parse(f.created_at) < Date.now() - 10 * 60e3)) stale.push('docs/' + f.name); }
+        if (list.length < 1000) break;
+      }
+      for (const part of chunks(stale, 100)) unwrap(await sb.storage.from(DOC_BUCKET).remove(part));
+      docStale = stale.length;
+    } catch {}
+    return docStale + await this.cleanupPhotoOrphans();
+  },
+  async cleanupPhotoOrphans() {
     const ids = new Set((await fetchAllRows('photos', [['id', true]])).map(p => p.id));
     const cutoff = Date.now() - 10 * 60e3;   // bỏ qua file mới (có thể đang tải lên dở)
     const stale = [];
@@ -795,13 +894,16 @@ const realApi = {
       ch.on('postgres_changes', { event: '*', schema: 'public', table }, p => handler({ table, type: p.eventType, row: p.new, old: p.old }));
     }
     ch.subscribe(status => onStatus?.(status));
+    const ch2 = sb.channel('thuvienanh-files');
+    ch2.on('postgres_changes', { event: '*', schema: 'public', table: 'files' }, p => handler({ table: 'files', type: p.eventType, row: p.new, old: p.old }));
+    ch2.subscribe();
   },
 };
 
 /* Thư viện Supabase tải nền; thao tác nào cần nó thì tự chờ (thường chỉ vài phần mười giây đầu) */
 let sbOk, sbFail; const sbReady = new Promise((a, b) => { sbOk = a; sbFail = b; }); sbReady.catch(() => {});
 for (const k of Object.keys(realApi)) {
-  if (k === 'listAll' || k === 'subscribe') continue;
+  if (k === 'listAll' || k === 'subscribe' || k === 'cleanupPhotoOrphans') continue;
   const f = realApi[k]; realApi[k] = async (...a) => { await sbReady; return f.apply(realApi, a); };
 }
 const api = CONFIG.USE_MOCK ? mockApi : realApi;
@@ -813,7 +915,8 @@ function writeCache() {
   if (CONFIG.USE_MOCK || !S.loaded) return;
   try {
     const photos = [...S.photos.values()].filter(p => !p._status && !S.pendingDelete.has(p.id)).map(p => Object.fromEntries(Object.entries(p).filter(([k]) => k[0] !== '_')));
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), photos, albums: [...S.albums.values()], links: [...S.links.values()] }));
+    const files = [...S.files.values()].filter(f => !f._status && !S.pendingFileDel.has(f.id)).map(f => Object.fromEntries(Object.entries(f).filter(([k]) => k[0] !== '_')));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), photos, albums: [...S.albums.values()], links: [...S.links.values()], files }));
   } catch { try { localStorage.removeItem(CACHE_KEY); } catch {} }
 }
 const writeCacheSoon = debounce(writeCache, 1500);
@@ -825,6 +928,12 @@ function photoUrl(p, kind) {
   if (CONFIG.USE_MOCK) return MOCK_URLS[p.id]?.[kind] || '';
   const path = kind === 'thumb' ? p.thumb_path : p.full_path;
   return `${CONFIG.SUPABASE_URL}/storage/v1/object/public/${CONFIG.BUCKET}/${path}`;
+}
+/** URL tệp tài liệu. download=true → trình duyệt tải về với đúng tên gốc */
+function fileUrl(f, download) {
+  if (f._local) return f._local;
+  if (CONFIG.USE_MOCK) return MOCK_FILE_URLS[f.id] || '';
+  return `${CONFIG.SUPABASE_URL}/storage/v1/object/public/${DOC_BUCKET}/${f.path}` + (download ? '?download=' + encodeURIComponent(f.name) : '');
 }
 function fallbackImg(p) {
   const c = softColor(p.id);
@@ -839,6 +948,7 @@ const S = {
   pendingDelete: new Set(), selected: new Set(), selecting: false,
   query: '', route: { name: 'all' }, uploads: [], sync: 'ok', extraBytes: 0,
   loaded: false, loadError: null,
+  files: new Map(), pendingFileDel: new Set(), filesMissing: false,
 };
 const linkKey = (a, p) => a + '|' + p;
 const posSaving = new Map();   // liên kết đang lưu vị trí -> bỏ qua tin realtime cũ để ảnh không nhảy lại
@@ -855,6 +965,9 @@ function removePhotoLocal(id) {
   const el = cardEls.get(id); if (el) { el.remove(); cardEls.delete(id); }
   S.selected.delete(id);
 }
+function applyFile(row) { const o = S.files.get(row.id); S.files.set(row.id, o ? { ...o, ...row } : row); }
+function removeFileLocal(id) { S.files.delete(id); }
+function sortedFiles() { return [...S.files.values()].filter(f => !S.pendingFileDel.has(f.id)).sort((a, b) => (b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0)); }
 function removeAlbumLocal(id) {
   S.albums.delete(id);
   for (const [k, l] of S.links) if (l.album_id === id) S.links.delete(k);
@@ -867,6 +980,10 @@ function loadSnapshot(data) {
   temps.forEach(p => { if (p._status || !S.photos.has(p.id)) S.photos.set(p.id, p); });
   data.albums.forEach(applyAlbum);
   data.links.forEach(applyLink);
+  const ftemps = [...S.files.values()].filter(f => f._status || (f._savedAt && Date.now() - f._savedAt < 30000));
+  S.files = new Map();
+  (data.files || []).filter(f => !(recentDel.get(f.id) > Date.now() - 30000)).forEach(applyFile);
+  ftemps.forEach(f => { if (f._status || !S.files.has(f.id)) S.files.set(f.id, f); });
   for (const id of [...cardEls.keys()]) if (!S.photos.has(id)) { cardEls.get(id).remove(); cardEls.delete(id); }
 }
 
@@ -881,7 +998,8 @@ function albumPhotos(albumId) {
 }
 function photoAlbums(photoId) { return [...S.links.values()].filter(l => l.photo_id === photoId).map(l => S.albums.get(l.album_id)).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, 'vi')); }
 function allTags() { const m = new Map(); for (const p of S.photos.values()) for (const t of p.tags || []) m.set(t, (m.get(t) || 0) + 1); return [...m.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]); }
-function storageUsed() { let n = S.extraBytes; for (const p of S.photos.values()) n += p.size_bytes || 0; return n; }
+function storageUsed() { let n = S.extraBytes; for (const p of S.photos.values()) n += p.size_bytes || 0; for (const f of S.files.values()) n += f.size_bytes || 0; return n; }
+function filesBytes() { let n = 0; for (const f of S.files.values()) if (!f._status) n += f.size_bytes || 0; return n; }
 function realCount() { return [...S.photos.values()].filter(p => !p._status && alive(p)).length; }
 
 function filterByQuery(list) {
@@ -1202,6 +1320,7 @@ function parseRoute() {
   if (a === 'albums') return { name: 'albums' };
   if (a === 'album' && b) return { name: 'album', id: decodeURIComponent(b) };
   if (a === 'settings') return { name: 'settings' };
+  if (a === 'files') return { name: 'files' };
   return { name: 'all' };
 }
 function go(hash, tries = 0) {
@@ -1217,10 +1336,11 @@ function mountRoute() {
   S.route = parseRoute();
   view.innerHTML = '';
   const r = S.route;
-  current = r.name === 'albums' ? mountAlbums() : r.name === 'album' ? mountAlbum(r.id) : r.name === 'settings' ? mountSettings() : mountAll();
+  current = r.name === 'albums' ? mountAlbums() : r.name === 'album' ? mountAlbum(r.id) : r.name === 'settings' ? mountSettings() : r.name === 'files' ? mountFiles() : mountAll();
   current.update();
   const navKey = r.name === 'album' ? '#/albums' : r.name === 'all' ? '#/' : '#/' + r.name;
   $$('.navbtn[data-go]').forEach(b => b.classList.toggle('active', b.dataset.go === navKey));
+  const tu = $('#topUpload'); if (tu) tu.innerHTML = icon('upload', 18) + (r.name === 'files' ? ' Tải tệp lên' : ' Tải ảnh lên');
   window.scrollTo(0, 0);
 }
 
@@ -1306,18 +1426,107 @@ function mountAlbum(id) {
   };
 }
 
+/* ----- Trang: Tệp tài liệu ----- */
+function mountFiles() {
+  view.innerHTML = `<div class="view-head"><div><h1>Tệp</h1><div class="sub" id="vSub"></div></div><button class="btn primary" data-act="upload">${icon('upload', 18)} Tải tệp lên</button></div>
+    <div id="vEmpty"></div><div class="flist" id="fileList"></div>`;
+  const host = $('#fileList');
+  host.addEventListener('click', e => {
+    const row = e.target.closest('.frow'); if (!row) return;
+    const f = S.files.get(row.dataset.id); if (!f) return;
+    if (f._status === 'error') return retryUpload(f.id);
+    if (f._status) return toast('Tệp đang tải lên, chờ chút nhé');
+    const b = e.target.closest('[data-fa]');
+    if (b?.dataset.fa === 'download') return downloadDoc(f);
+    if (b?.dataset.fa === 'more') return openMenu(b, fileMenu(f.id));
+    openDoc(f);
+  });
+  return {
+    update() {
+      const base = sortedFiles(), q = norm(S.query);
+      const list = q ? base.filter(f => q.split(/\s+/).every(t => norm(f.name).includes(t))) : base;
+      $('#vSub').innerHTML = S.query ? `${fmtNum(list.length)}/${fmtNum(base.length)} tệp khớp “${esc(S.query)}” · <button class="linkbtn" data-act="clearq">Xóa tìm kiếm</button>` : `${fmtNum(base.length)} tệp · ${fmtBytes(filesBytes())}`;
+      if (S.filesMissing && !CONFIG.USE_MOCK) $('#vEmpty').innerHTML = `<div class="empty"><div class="ic">${icon('file', 30)}</div><h2>Chưa bật lưu trữ tệp</h2><div>Vào Supabase → SQL Editor, chạy lại toàn bộ file <b>schema.sql</b> mới (chạy lại an toàn, không mất dữ liệu), rồi tải lại trang này.</div></div>`;
+      else $('#vEmpty').innerHTML = !base.length ? (S.loaded ? `<div class="empty"><div class="ic">${icon('file', 30)}</div><h2>Chưa có tệp nào</h2><div>PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP, bản vẽ DWG… tối đa 50 MB mỗi tệp.<br>${isMobile() ? 'Bấm nút + bên dưới để chọn tệp.' : 'Kéo thả tệp vào đây hoặc chọn từ máy.'}</div><button class="btn primary big" data-act="upload">${icon('upload', 20)} Chọn tệp từ máy</button></div>` : '<div class="noresult">Đang tải…</div>')
+        : (!list.length ? `<div class="noresult">Không có tệp nào khớp “${esc(S.query)}”.</div>` : '');
+      host.innerHTML = list.map(fileRow).join('');
+    },
+  };
+}
+function fileRow(f) {
+  const ext = f.ext || extOf(f.name), up = f._status === 'uploading', er = f._status === 'error';
+  const pct = Math.round((f._progress || 0) * 100);
+  return `<div class="frow ${er ? 'error' : ''}" data-id="${esc(f.id)}" title="${esc(f.name)}">
+    <div class="ficon" style="--fc:${docColor(ext)}">${esc((ext || '?').toUpperCase())}</div>
+    <div class="fmain"><div class="fname">${esc(f.name)}</div>
+      <div class="sub">${up ? `Đang tải lên ${pct}% · ${fmtBytes(f.size_bytes)}` : er ? 'Tải lên lỗi · Bấm để thử lại' : `${fmtBytes(f.size_bytes)} · ${fmtDate(f.created_at)}`}</div>
+      ${up ? `<div class="fbar"><i style="width:${pct}%"></i></div>` : ''}</div>
+    ${f._status ? '' : `<button class="btn icon" data-fa="download" title="Tải về máy" aria-label="Tải về máy">${icon('download', 18)}</button><button class="more" data-fa="more" aria-label="Tùy chọn">${icon('more', 20)}</button>`}
+  </div>`;
+}
+function canPreview(f) { const e = f.ext || extOf(f.name); return BROWSER_VIEW.has(e) || (!CONFIG.USE_MOCK && OFFICE_VIEW.has(e)); }
+function openDoc(f) {
+  const e = f.ext || extOf(f.name);
+  if (BROWSER_VIEW.has(e)) return window.open(fileUrl(f), '_blank', 'noopener');
+  if (OFFICE_VIEW.has(e) && !CONFIG.USE_MOCK) return window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(fileUrl(f)), '_blank', 'noopener');
+  downloadDoc(f);
+}
+function downloadDoc(f) {
+  const a = document.createElement('a'); a.href = fileUrl(f, true); a.download = f.name; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function fileMenu(id) {
+  const f = S.files.get(id);
+  return [
+    ...(canPreview(f) ? [{ icon: 'eye', label: 'Xem', run: () => openDoc(f) }] : []),
+    { icon: 'download', label: 'Tải về máy', run: () => downloadDoc(f) },
+    { icon: 'edit', label: 'Đổi tên', run: () => renameFileFlow(id) },
+    ...(CONFIG.USE_MOCK ? [] : [{ icon: 'copy', label: 'Sao chép link tải', run: () => copyText(fileUrl(f, true), 'Đã sao chép link tải tệp') }]),
+    '-',
+    { icon: 'trash', label: 'Xóa tệp', danger: true, run: () => deleteFilesFlow([id]) },
+  ];
+}
+function copyText(t, ok) { (navigator.clipboard?.writeText(t) || Promise.reject()).then(() => toast(ok), () => window.prompt('Sao chép link:', t)); }
+async function renameFileFlow(id) {
+  const f = S.files.get(id); if (!f) return;
+  let name = await promptDialog({ title: 'Đổi tên tệp', value: f.name });
+  if (!name || name === f.name) return;
+  const ext = f.ext || extOf(f.name);
+  if (ext && extOf(name) !== ext) name += '.' + ext;   // giữ đuôi tệp để mở đúng chương trình
+  const before = f.name; applyFile({ id, name }); render();
+  try { applyFile(await api.updateFile(id, { name })); } catch (err) { applyFile({ id, name: before }); toast('Không đổi tên được: ' + err.message); }
+  render();
+}
+function deleteFilesFlow(ids) {
+  const rows = ids.map(id => S.files.get(id)).filter(f => f && !f._status); if (!rows.length) return;
+  rows.forEach(f => S.pendingFileDel.add(f.id));
+  const key = uid();
+  const commit = async () => {
+    pendingTimers.delete(key);
+    try { await api.deleteFiles(rows.map(f => ({ id: f.id, path: f.path }))); rows.forEach(f => { recentDel.set(f.id, Date.now()); removeFileLocal(f.id); }); }
+    catch { toast('Xóa tệp thất bại, tệp đã được khôi phục'); }
+    rows.forEach(f => S.pendingFileDel.delete(f.id)); render();
+  };
+  pendingTimers.set(key, { commit, timer: setTimeout(commit, CONFIG.UNDO_MS) });
+  render();
+  toast(`Đã xóa ${rows.length === 1 ? '“' + rows[0].name + '”' : rows.length + ' tệp'}`, {
+    ms: CONFIG.UNDO_MS, action: 'Hoàn tác',
+    onAction: () => { const t = pendingTimers.get(key); if (!t) return; clearTimeout(t.timer); pendingTimers.delete(key); rows.forEach(f => S.pendingFileDel.delete(f.id)); render(); },
+  });
+}
+
 /* ----- Trang: Cài đặt ----- */
 function mountSettings() {
   view.innerHTML = `<div class="view-head"><h1>Cài đặt</h1></div>
-  <div class="set-card"><h2>Dung lượng kho ảnh</h2><div id="stUsed"></div></div>
+  <div class="set-card"><h2>Dung lượng kho (ảnh + tệp)</h2><div id="stUsed"></div></div>
   <div class="set-card"><h2>Đồng bộ</h2><p id="stSync"></p><button class="btn" data-act="refresh">${icon('refresh', 18)} Làm mới ngay</button></div>
-  <div class="set-card"><h2>Bảo trì</h2><p>Tìm và xóa file ảnh còn nằm trong kho nhưng không còn trong thư viện (do xóa bị gián đoạn).</p><button class="btn" data-act="orphans">Dọn file thừa</button></div>
-  <div class="set-card"><h2>Sao lưu</h2><p>Tải toàn bộ ảnh lớn và thông tin (ghi chú, tag, link, album) về máy thành một file .zip. Vì app không khóa, nên sao lưu định kỳ, tốt nhất làm trên laptop.</p><p id="stBackup"></p><button class="btn" data-act="backup">${icon('download', 18)} Tải bản sao lưu (.zip)</button></div>
+  <div class="set-card"><h2>Bảo trì</h2><p>Tìm và xóa file ảnh, tệp còn nằm trong kho nhưng không còn trong thư viện (do xóa bị gián đoạn).</p><button class="btn" data-act="orphans">Dọn file thừa</button></div>
+  <div class="set-card"><h2>Sao lưu</h2><p>Tải toàn bộ ảnh lớn, tệp tài liệu và thông tin (ghi chú, tag, link, album) về máy thành một file .zip. Vì app không khóa, nên sao lưu định kỳ, tốt nhất làm trên laptop.</p><p id="stBackup"></p><button class="btn" data-act="backup">${icon('download', 18)} Tải bản sao lưu (.zip)</button></div>
   ${CONFIG.USE_MOCK ? `<div class="set-card"><h2>Công cụ thử nghiệm <span class="badge">Chỉ có ở bản giả lập</span></h2><p>Dùng để thử giao diện. Tải lại trang là dữ liệu mẫu trở về như ban đầu.</p>
     <div class="set-row"><button class="btn" data-act="mock500">Thêm 500 ảnh mẫu</button><button class="btn" data-act="mockremote">Giả lập ảnh mới từ thiết bị khác</button><button class="btn" data-act="mockreset">Đặt lại dữ liệu mẫu</button></div>
     <label class="switch"><input type="checkbox" id="mFail"> Giả lập lỗi tải lên (30% ảnh bị lỗi)</label>
     <label class="switch"><input type="checkbox" id="mFull"> Giả lập kho gần đầy (+900 MB)</label></div>` : ''}
-  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.2.0 · Supabase'}</div>`;
+  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.3.0 · Supabase'}</div>`;
   if (CONFIG.USE_MOCK) {
     const f = $('#mFail'), u = $('#mFull');
     f.checked = mockFlags.failRate > 0; u.checked = S.extraBytes > 0;
@@ -1328,12 +1537,14 @@ function mountSettings() {
     update() {
       const used = storageUsed(), n = realCount();
       const pct = Math.min(100, used / CONFIG.STORAGE_LIMIT * 100);
-      const avg = n ? (used - S.extraBytes) / n : 400e3;
+      const fb = filesBytes(), nf = sortedFiles().filter(f => !f._status).length;
+      const avg = n ? (used - S.extraBytes - fb) / n : 400e3;
       const left = Math.max(0, Math.floor((CONFIG.BLOCK_AT - used) / Math.max(avg, 1)));
       const cls = used >= CONFIG.BLOCK_AT ? 'full' : used >= CONFIG.WARN_AT ? 'warn' : '';
       $('#stUsed').innerHTML = `<div class="big-num">${fmtBytes(used)} <span class="sub" style="font-size:16px;font-weight:600">/ 1 GB</span></div>
         <div class="meter ${cls}"><i style="width:${pct}%"></i></div>
         <div class="sub">${fmtNum(n)} ảnh · trung bình ${fmtBytes(avg)}/ảnh · còn chứa khoảng ${fmtNum(left)} ảnh nữa</div>
+        <div class="sub">${fmtNum(nf)} tệp tài liệu · ${fmtBytes(fb)}</div>
         <div class="sub">Cảnh báo khi vượt 800 MB, chặn tải lên khi vượt 950 MB để không bao giờ phát sinh phí.</div>`;
       const last = lastBackup();
       $('#stBackup').textContent = last ? `Lần sao lưu gần nhất trên thiết bị này: ${fmtDate(last)}` : 'Chưa sao lưu lần nào trên thiết bị này.';
@@ -1643,8 +1854,9 @@ let backingUp = false;
 async function backupFlow(btn) {
   if (backingUp) return;
   const photos = [...S.photos.values()].filter(p => !p._status && alive(p));
-  if (!photos.length) return toast('Chưa có ảnh nào để sao lưu');
-  const total = photos.reduce((s, p) => s + (p.size_bytes || 0), 0);
+  const docs = sortedFiles().filter(f => !f._status);
+  if (!photos.length && !docs.length) return toast('Chưa có ảnh hay tệp nào để sao lưu');
+  const total = photos.reduce((s, p) => s + (p.size_bytes || 0), 0) + docs.reduce((s, f) => s + (f.size_bytes || 0), 0);
   if (isMobile() && total > 300e6) {
     const ok = await confirmDialog({ title: 'Bản sao lưu khá lớn', text: `Khoảng ${fmtBytes(total)}. Điện thoại có thể thiếu bộ nhớ, nên làm trên laptop. Vẫn tiếp tục?`, ok: 'Tiếp tục' });
     if (!ok) return;
@@ -1658,9 +1870,9 @@ async function backupFlow(btn) {
     const strip = p => Object.fromEntries(Object.entries(p).filter(([k]) => !k.startsWith('_')));
     zip.file('data.json', JSON.stringify({
       app: 'thuvienanh', version: 1, exported_at: nowIso(),
-      photos: photos.map(strip), albums: [...S.albums.values()], album_photos: [...S.links.values()],
+      photos: photos.map(strip), albums: [...S.albums.values()], album_photos: [...S.links.values()], files: docs.map(strip),
     }, null, 2));
-    zip.file('DOC-TRUOC.txt', 'Bản sao lưu Thư viện ảnh\n\n- data.json: thông tin ảnh (ghi chú, tag, link nguồn), album và ảnh nào thuộc album nào.\n- full/: ảnh lớn dạng WebP. Tên file = id của ảnh trong data.json.\n- Thumbnail không kèm theo vì có thể tạo lại từ ảnh lớn.\n');
+    zip.file('DOC-TRUOC.txt', 'Bản sao lưu Thư viện ảnh\n\n- data.json: thông tin ảnh (ghi chú, tag, link nguồn), album và ảnh nào thuộc album nào.\n- full/: ảnh lớn dạng WebP. Tên file = id của ảnh trong data.json.\n- Thumbnail không kèm theo vì có thể tạo lại từ ảnh lớn.\n- tep/: tệp tài liệu, giữ tên gốc (trùng tên thì thêm số).\n');
     const work = photos.slice(), failed = []; let done = 0;
     const worker = async () => {
       while (work.length) {
@@ -1671,13 +1883,19 @@ async function backupFlow(btn) {
       }
     };
     await Promise.all([1, 2, 3, 4].map(worker));
+    const used = new Set();
+    for (const f of docs) {
+      let nm = f.name.replace(/[\\/:*?"<>|]/g, '_'), k = 1; while (used.has(nm.toLowerCase())) nm = f.name.replace(/(\.[^.]*)?$/, ` (${++k})$1`); used.add(nm.toLowerCase());
+      try { const r = await fetch(fileUrl(f)); if (!r.ok) throw 0; zip.file('tep/' + nm, await r.blob()); } catch { failed.push(f.id); }
+      btn.textContent = `Đang tải tệp ${used.size}/${docs.length}…`;
+    }
     btn.textContent = 'Đang đóng gói…';
     const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = `thuvienanh-saoluu-${new Date().toISOString().slice(0, 10)}.zip`; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 60e3);
     try { localStorage.setItem('tva-last-backup', nowIso()); } catch {}
-    toast(failed.length ? `Đã sao lưu, nhưng ${failed.length} ảnh không tải được` : `Đã sao lưu ${photos.length} ảnh (${fmtBytes(blob.size)})`, { ms: 6000 });
+    toast(failed.length ? `Đã sao lưu, nhưng ${failed.length} mục không tải được` : `Đã sao lưu ${photos.length} ảnh, ${docs.length} tệp (${fmtBytes(blob.size)})`, { ms: 6000 });
   } catch (err) { toast('Sao lưu thất bại: ' + err.message, { ms: 6000 }); }
   backingUp = false; btn.disabled = false; btn.innerHTML = label;
   render();
@@ -1886,10 +2104,54 @@ function bindSwipe() {
 const isImageFile = f => f && (/^image\//.test(f.type) || /\.(heic|heif|avif|webp|jpe?g|png|gif|bmp)$/i.test(f.name || ''));
 const queue = []; let active = 0;
 const fileInput = $('#fileInput');
-fileInput.onchange = () => { enqueue([...fileInput.files], currentAlbumId()); fileInput.value = ''; };
+fileInput.onchange = () => { enqueueAny([...fileInput.files]); fileInput.value = ''; };
+const docInput = $('#docInput'); docInput.accept = DOC_ACCEPT;
+docInput.onchange = () => { enqueueAny([...docInput.files]); docInput.value = ''; };
 function openFilePicker() {
-  if (storageUsed() >= CONFIG.BLOCK_AT) return toast('Kho ảnh đã gần đầy (trên 950 MB). Hãy xóa bớt ảnh trước khi tải lên.', { ms: 6000 });
-  fileInput.click();
+  if (storageUsed() >= CONFIG.BLOCK_AT) return toast('Kho đã gần đầy (trên 950 MB). Hãy xóa bớt ảnh hoặc tệp trước khi tải lên.', { ms: 6000 });
+  (S.route.name === 'files' ? docInput : fileInput).click();
+}
+/* Chia file theo loại: ảnh → thư viện ảnh, tài liệu → trang Tệp, video/khác → báo chưa hỗ trợ */
+function enqueueAny(files, sourceUrl = null) {
+  const imgs = files.filter(isImageFile), docs = files.filter(f => !isImageFile(f) && isDocFile(f));
+  const vids = files.filter(f => !isImageFile(f) && !isDocFile(f) && isVideoFile(f)).length, other = files.length - imgs.length - docs.length - vids;
+  if (imgs.length) enqueue(imgs, currentAlbumId(), sourceUrl);
+  if (docs.length) enqueueDocs(docs);
+  if (vids || other) toast(vids ? `Chưa hỗ trợ lưu video (${vids} tệp bị bỏ qua)` : `${other} tệp có định dạng chưa hỗ trợ, đã bỏ qua`, { ms: 5000 });
+}
+function enqueueDocs(files) {
+  const big = files.filter(f => f.size > DOC_MAX); files = files.filter(f => f.size <= DOC_MAX);
+  if (big.length) toast(`${big.length} tệp vượt quá 50 MB (giới hạn gói miễn phí), đã bỏ qua`, { ms: 6000 });
+  if (!files.length) return;
+  if (S.filesMissing && !CONFIG.USE_MOCK) return toast('Chưa bật lưu trữ tệp: cần chạy lại schema.sql trong Supabase', { ms: 7000 });
+  const room = CONFIG.BLOCK_AT - storageUsed();
+  if (files.reduce((n, f) => n + f.size, 0) > room) return toast(`Kho chỉ còn khoảng ${fmtBytes(Math.max(0, room))}. Hãy xóa bớt ảnh hoặc tệp.`, { ms: 6000 });
+  for (const f of files) {
+    const job = { id: uid(), kind: 'doc', file: f, name: f.name, status: 'wait', progress: 0, origSize: f.size };
+    S.uploads.push(job); queue.push(job);
+  }
+  if (S.route.name !== 'files') toast(`${files.length} tệp tài liệu sẽ nằm ở trang Tệp`, { action: 'Xem', onAction: () => go('#/files') });
+  $('#uppanel').classList.remove('min');
+  renderUploadPanel(); pump();
+}
+async function runDocJob(job) {
+  const ext = extOf(job.file.name);
+  job.createdAt = job.createdAt || nowIso();
+  const row = { id: job.id, path: `docs/${job.id}.${ext}`, name: job.file.name, ext, mime: DOC_TYPES[ext]?.[0] || 'application/octet-stream', size_bytes: job.file.size, created_at: job.createdAt, updated_at: job.createdAt };
+  try {
+    applyFile({ ...row, _status: 'uploading', _progress: 0 });
+    job.status = 'upload'; job.progress = 0; render(); renderUploadPanel();
+    const saved = await api.uploadDoc({ file: job.file, row }, pr => {
+      job.progress = pr; const f = S.files.get(job.id); if (f) f._progress = pr;
+      renderUploadPanel(); if (S.route.name === 'files') render();
+    });
+    applyFile({ ...saved, _status: null, _savedAt: Date.now() });
+    job.status = 'done';
+  } catch (err) {
+    job.status = 'error'; job.error = err.message || 'Lỗi không rõ';
+    if (S.files.has(job.id)) applyFile({ id: job.id, _status: 'error' });
+  }
+  render();
 }
 
 function enqueue(files, albumId, sourceUrl = null) {
@@ -1910,6 +2172,7 @@ function pump() {
   }
 }
 async function runJob(job) {
+  if (job.kind === 'doc') return runDocJob(job);
   try {
     if (!job.compressed) { job.status = 'compress'; renderUploadPanel(); job.compressed = await compressQueued(job.file); job.newSize = job.compressed.full.size + job.compressed.thumb.size; }
     const c = job.compressed;
@@ -1939,7 +2202,7 @@ async function runJob(job) {
 }
 function retryUpload(id) {
   const job = S.uploads.find(j => j.id === id); if (!job || job.status !== 'error') return;
-  if (!job.compressed) return toast('Ảnh này không đọc được, không thể thử lại');
+  if (job.kind !== 'doc' && !job.compressed) return toast('Ảnh này không đọc được, không thể thử lại');
   job.status = 'wait'; job.error = null; queue.push(job); renderUploadPanel(); pump();
 }
 
@@ -1987,13 +2250,13 @@ function renderUploadPanel() {
   upPanel.classList.add('show');
   const done = jobs.filter(j => j.status === 'done').length, err = jobs.filter(j => j.status === 'error').length;
   const running = jobs.length - done - err;
-  const head = running ? `Đang tải lên ${done}/${jobs.length}` : err ? `Xong ${done}/${jobs.length} · ${err} lỗi` : `Đã tải lên ${done} ảnh`;
+  const head = running ? `Đang tải lên ${done}/${jobs.length}` : err ? `Xong ${done}/${jobs.length} · ${err} lỗi` : `Đã tải lên ${done} ${jobs.every(j => j.kind !== 'doc') ? 'ảnh' : jobs.every(j => j.kind === 'doc') ? 'tệp' : 'mục'}`;
   const st = j => j.status === 'wait' ? 'Đang chờ' : j.status === 'compress' ? 'Đang nén…' : j.status === 'upload' ? `Đang tải ${Math.round(j.progress * 100)}%` : j.status === 'done' ? 'Xong' : 'Lỗi';
   const pct = j => j.status === 'done' ? 100 : j.status === 'upload' ? Math.round(j.progress * 100) : j.status === 'compress' ? 5 : 0;
   upPanel.innerHTML = `<div class="uphead"><span>${head}</span><button data-u="min" aria-label="Thu gọn">${icon(upPanel.classList.contains('min') ? 'left' : 'right', 18)}</button>${running ? '' : `<button data-u="close" aria-label="Đóng">${icon('x', 18)}</button>`}</div>
   <div class="uplist">${jobs.slice().reverse().map(j => `<div class="upitem ${j.status === 'error' ? 'err' : j.status === 'done' ? 'ok' : ''}">
     <div class="r1"><span class="nm">${esc(j.name)}</span><span class="st">${st(j)}</span></div>
-    <div class="r2"><span>${fmtBytes(j.origSize)}${j.newSize ? ' → ' + fmtBytes(j.newSize) : ''}</span>${j.status === 'error' ? `<span>${esc(j.error)}${j.compressed ? ` · <button class="retry" data-retry="${j.id}">Thử lại</button>` : ''}</span>` : ''}</div>
+    <div class="r2"><span>${fmtBytes(j.origSize)}${j.newSize ? ' → ' + fmtBytes(j.newSize) : ''}</span>${j.status === 'error' ? `<span>${esc(j.error)}${j.compressed || j.kind === 'doc' ? ` · <button class="retry" data-retry="${j.id}">Thử lại</button>` : ''}</span>` : ''}</div>
     ${j.status === 'done' || j.status === 'error' ? '' : `<div class="bar"><i style="width:${pct(j)}%"></i></div>`}</div>`).join('')}</div>`;
 }
 upPanel.addEventListener('click', e => {
@@ -2002,7 +2265,7 @@ upPanel.addEventListener('click', e => {
   if (b.dataset.u === 'min') { upPanel.classList.toggle('min'); return renderUploadPanel(); }
   if (b.dataset.u === 'close') { S.uploads = S.uploads.filter(j => j.status !== 'done' && j.status !== 'error'); dropErrorTemps(); renderUploadPanel(); }
 });
-function dropErrorTemps() { for (const p of [...S.photos.values()]) if (p._status === 'error') removePhotoLocal(p.id); render(); }
+function dropErrorTemps() { for (const p of [...S.photos.values()]) if (p._status === 'error') removePhotoLocal(p.id); for (const f of [...S.files.values()]) if (f._status === 'error') removeFileLocal(f.id); render(); }
 const autoHidePanel = debounce(() => {
   if (S.uploads.length && S.uploads.every(j => j.status === 'done')) { S.uploads = []; renderUploadPanel(); }
 }, 4000);
@@ -2011,11 +2274,11 @@ window.addEventListener('beforeunload', e => { if (active || queue.length) { e.p
 
 /* ----- Ctrl+V ----- */
 document.addEventListener('paste', e => {
-  const files = [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(isImageFile);
+  const files = [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
   if (!files.length) return;
   e.preventDefault();
   if (V.open) closeViewer();
-  enqueue(files, currentAlbumId());
+  enqueueAny(files);
 });
 
 /* ----- Kéo-thả từ ngoài vào ----- */
@@ -2028,15 +2291,15 @@ const isExternalDrag = e => { if (internalDrag) return false; const t = [...(e.d
 window.addEventListener('dragenter', e => {
   if (!isExternalDrag(e)) return; e.preventDefault(); dragDepth++;
   const a = currentAlbumId() && S.albums.get(currentAlbumId());
-  $('#dropSub').textContent = a ? `Ảnh sẽ vào album “${a.name}”` : 'Ảnh sẽ vào Tất cả ảnh';
+  $('#dropSub').textContent = (a ? `Ảnh sẽ vào album “${a.name}”` : 'Ảnh sẽ vào Tất cả ảnh') + ' · tài liệu vào trang Tệp';
   dropEl.classList.add('show');
 });
 window.addEventListener('dragover', e => { if (!isExternalDrag(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
 window.addEventListener('dragleave', e => { if (!isExternalDrag(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropEl.classList.remove('show'); });
 window.addEventListener('drop', e => {
   if (!isExternalDrag(e)) return; e.preventDefault(); dragDepth = 0; dropEl.classList.remove('show');
-  const files = [...e.dataTransfer.files].filter(isImageFile);
-  if (files.length) return enqueue(files, currentAlbumId());
+  const files = [...e.dataTransfer.files];
+  if (files.length) return enqueueAny(files);
   // Trang web kia chỉ gửi link → thử tải ảnh về; nếu bị chặn thì hướng dẫn dán
   const html = e.dataTransfer.getData('text/html') || '', uri = e.dataTransfer.getData('text/uri-list') || '';
   const url = (html.match(/<img[^>]+src=["']([^"']+)/i)?.[1] || uri.split(/\r?\n/).find(l => l && !l.startsWith('#')) || '').replace(/&amp;/g, '&').trim();
@@ -2102,6 +2365,7 @@ function startRealtime() {
   api.subscribe(({ table, type, row, old }) => {
     if (table === 'photos') { if (type === 'DELETE') removePhotoLocal(old.id); else if (!(type === 'UPDATE' && savingCount.has(row.id))) applyPhoto(row); }
     if (table === 'albums') type === 'DELETE' ? removeAlbumLocal(old.id) : applyAlbum(row);
+    if (table === 'files') { if (type === 'DELETE') removeFileLocal(old.id); else { S.filesMissing = false; applyFile(row); } }
     if (table === 'album_photos') {
       if (type === 'DELETE') removeLink(old.album_id, old.photo_id);
       else if (!(type === 'UPDATE' && posSaving.get(linkKey(row.album_id, row.photo_id)) > 0)) applyLink(row);
@@ -2195,7 +2459,7 @@ function simulateRemote() {
    ========================================================================= */
 (async function init() {
   // Gắn icon vào nút điều hướng
-  const navIcons = { '#/': 'home', '#/albums': 'albums', '#/settings': 'settings' };
+  const navIcons = { '#/': 'home', '#/albums': 'albums', '#/files': 'file', '#/settings': 'settings' };
   $$('.navbtn[data-go]').forEach(b => b.innerHTML = icon(navIcons[b.dataset.go], 24));
   $$('.navbtn[data-act="upload"]').forEach(b => b.innerHTML = icon('plus', 26));
   $('.search .si').innerHTML = icon('search', 20);
