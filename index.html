@@ -456,7 +456,7 @@ body.selecting .toasts{bottom:88px}
 
 <script>
 /* =========================================================================
-   THƯ VIỆN ẢNH — v1.0.1 (MVP + sao lưu)
+   THƯ VIỆN ẢNH — v1.3.1
    Chưa điền SUPABASE_URL/KEY trong CONFIG → tự chạy dữ liệu giả lập.
    - Toàn bộ dữ liệu đi qua đối tượng `api`. Giai đoạn backend chỉ cần viết lại
      các hàm trong `api` bằng Supabase (cùng tên, cùng dữ liệu vào/ra).
@@ -1526,7 +1526,7 @@ function mountSettings() {
     <div class="set-row"><button class="btn" data-act="mock500">Thêm 500 ảnh mẫu</button><button class="btn" data-act="mockremote">Giả lập ảnh mới từ thiết bị khác</button><button class="btn" data-act="mockreset">Đặt lại dữ liệu mẫu</button></div>
     <label class="switch"><input type="checkbox" id="mFail"> Giả lập lỗi tải lên (30% ảnh bị lỗi)</label>
     <label class="switch"><input type="checkbox" id="mFull"> Giả lập kho gần đầy (+900 MB)</label></div>` : ''}
-  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.3.0 · Supabase'}</div>`;
+  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.3.1 · Supabase'}</div>`;
   if (CONFIG.USE_MOCK) {
     const f = $('#mFail'), u = $('#mFull');
     f.checked = mockFlags.failRate > 0; u.checked = S.extraBytes > 0;
@@ -2115,9 +2115,11 @@ function openFilePicker() {
 function enqueueAny(files, sourceUrl = null) {
   const imgs = files.filter(isImageFile), docs = files.filter(f => !isImageFile(f) && isDocFile(f));
   const vids = files.filter(f => !isImageFile(f) && !isDocFile(f) && isVideoFile(f)).length, other = files.length - imgs.length - docs.length - vids;
-  if (imgs.length) enqueue(imgs, currentAlbumId(), sourceUrl);
+  let taken = 0;
+  if (imgs.length && enqueue(imgs, currentAlbumId(), sourceUrl)) taken = imgs.length;
   if (docs.length) enqueueDocs(docs);
   if (vids || other) toast(vids ? `Chưa hỗ trợ lưu video (${vids} tệp bị bỏ qua)` : `${other} tệp có định dạng chưa hỗ trợ, đã bỏ qua`, { ms: 5000 });
+  return taken;   // số ảnh đã nhận
 }
 function enqueueDocs(files) {
   const big = files.filter(f => f.size > DOC_MAX); files = files.filter(f => f.size <= DOC_MAX);
@@ -2156,14 +2158,15 @@ async function runDocJob(job) {
 
 function enqueue(files, albumId, sourceUrl = null) {
   files = files.filter(isImageFile);
-  if (!files.length) return toast('Không có file ảnh nào');
-  if (storageUsed() >= CONFIG.BLOCK_AT) return toast('Kho ảnh đã gần đầy (trên 950 MB). Hãy xóa bớt ảnh trước khi tải lên.', { ms: 6000 });
+  if (!files.length) { toast('Không có file ảnh nào'); return false; }
+  if (storageUsed() >= CONFIG.BLOCK_AT) { toast('Kho ảnh đã gần đầy (trên 950 MB). Hãy xóa bớt ảnh trước khi tải lên.', { ms: 6000 }); return false; }
   for (const f of files) {
     const job = { id: uid(), file: f, name: f.name && f.name !== 'image.png' ? f.name : 'Ảnh dán', albumId, sourceUrl, status: 'wait', progress: 0, origSize: f.size };
     S.uploads.push(job); queue.push(job);
   }
   $('#uppanel').classList.remove('min');
   renderUploadPanel(); pump();
+  return true;
 }
 function pump() {
   while (active < CONFIG.UPLOAD_CONCURRENCY && queue.length) {
@@ -2272,44 +2275,110 @@ const autoHidePanel = debounce(() => {
 
 window.addEventListener('beforeunload', e => { if (active || queue.length) { e.preventDefault(); e.returnValue = ''; } });
 
+/* ----- Nhận ảnh từ bên ngoài: Ctrl+V và kéo-thả đi chung một đường (v1.3.1) ----- */
+const IMG_EXT_RE = /\.(jpe?g|png|webp|gif|avif|bmp)([?#]|$)/i;
+const JUNK_FILE = /^(\.|thumbs\.db$|desktop\.ini$)/i;   // file ẩn của hệ điều hành nằm lẫn trong thư mục
+const copyHint = () => toast('Không lấy được ảnh từ trang web đó. Hãy chuột phải vào ảnh → “Sao chép hình ảnh”, rồi bấm Ctrl+V ở đây.', { ms: 8000 });
+function closeOverlays() { if (layers.length) history.go(-layers.length); }
+
+/* Không có file ảnh thật → tìm link ảnh trong dữ liệu kéo/dán. forPaste: chặt hơn, để dán chữ thường không bị hiểu nhầm */
+function imageUrlFrom(dt, forPaste) {
+  let html = '', uri = '', txt = '';
+  try { html = dt.getData('text/html') || ''; uri = dt.getData('text/uri-list') || ''; txt = (dt.getData('text/plain') || '').trim(); } catch {}
+  let fromHtml = html.match(/<img[^>]+src\s*=\s*["']([^"']+)/i)?.[1] || '';
+  if (forPaste && fromHtml && html.replace(/<[^>]*>/g, '').trim().length > 80) fromHtml = '';   // chép cả đoạn văn có lẫn ảnh → không coi là chép ảnh
+  const fromUri = forPaste ? '' : (uri.split(/\r?\n/).find(l => l && !l.startsWith('#')) || '');
+  const isUrl = /^(https?:\/\/\S+|data:image\/\S+)$/i.test(txt);
+  const fromTxt = isUrl && (!forPaste || /^data:image\//i.test(txt) || IMG_EXT_RE.test(txt)) ? txt : '';
+  let url = (fromHtml || fromUri || fromTxt).replace(/&amp;/g, '&').trim();
+  if (url.startsWith('//')) url = 'https:' + url;
+  return url;
+}
+async function fetchImageUrl(url, albumId) {
+  if (!/^(https?:|data:image\/)/i.test(url)) return copyHint();
+  const wait = toast('Đang lấy ảnh từ link…', { ms: 15000 });
+  try {
+    const r = await fetch(url, { referrerPolicy: 'no-referrer' }); if (!r.ok) throw 0;
+    const b = await r.blob(); if (!/^image\//.test(b.type)) throw 0;
+    wait.remove();
+    if (enqueue([new File([b], 'Ảnh từ web', { type: b.type })], albumId, /^https?:/i.test(url) ? url : null)) afterIncoming(1);
+  } catch { wait.remove(); copyHint(); }
+}
+/* Sau khi nhận ảnh: cho người dùng thấy ngay ảnh đang ở đâu */
+function afterIncoming(n) {
+  if (!n) return;
+  const onGrid = S.route.name === 'all' || S.route.name === 'album';
+  if (onGrid && !S.query) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  const a = currentAlbumId() && S.albums.get(currentAlbumId());
+  toast(`Đã nhận ${n} ảnh, đang tải lên ${a ? 'album “' + a.name + '”' : '“Tất cả ảnh”'}`, {
+    ms: 6000, action: 'Xem',
+    onAction: () => { if (S.query) setQuery(''); if (S.route.name !== 'all' && S.route.name !== 'album') go('#/'); window.scrollTo(0, 0); },
+  });
+}
+/* Đường chung: có file dùng được thì tải lên; không thì thử link ảnh. Trả về false nếu không có gì để nhận */
+function takeIn(files, url) {
+  files = files.filter(f => f && !JUNK_FILE.test(f.name || ''));
+  const usable = files.some(f => isImageFile(f) || isDocFile(f) || isVideoFile(f));
+  if (usable || (files.length && !url)) { if (V.open) closeOverlays(); afterIncoming(enqueueAny(files)); return true; }
+  if (url) { if (V.open) closeOverlays(); fetchImageUrl(url, currentAlbumId()); return true; }
+  return false;
+}
+
 /* ----- Ctrl+V ----- */
 document.addEventListener('paste', e => {
-  const files = [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
-  if (!files.length) return;
-  e.preventDefault();
-  if (V.open) closeViewer();
-  enqueueAny(files);
+  const cd = e.clipboardData; if (!cd) return;
+  let files = [...(cd.files || [])];
+  if (!files.length) files = [...(cd.items || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
+  const typing = !!e.target?.closest?.('input,textarea,[contenteditable]');
+  let text = ''; try { text = (cd.getData('text/plain') || '').trim(); } catch {}
+  if (typing && (text || !files.length)) return;   // đang gõ trong ô nhập và có chữ để dán → để trình duyệt dán chữ như bình thường
+  const url = files.length ? '' : imageUrlFrom(cd, true);
+  if (takeIn(files, url)) { e.preventDefault(); return; }
+  toast('Bộ nhớ tạm chưa có ảnh. Hãy chuột phải vào ảnh → “Sao chép hình ảnh”, hoặc chọn file ảnh rồi Ctrl+C, sau đó Ctrl+V ở đây.', { ms: 7000 });
 });
 
 /* ----- Kéo-thả từ ngoài vào ----- */
-let dragDepth = 0;
-const dropEl = $('#drop');
-let internalDrag = false;
-window.addEventListener('dragstart', () => { internalDrag = true; });
-window.addEventListener('dragend', () => { internalDrag = false; });
-const isExternalDrag = e => { if (internalDrag) return false; const t = [...(e.dataTransfer?.types || [])]; return t.includes('Files') || t.includes('text/uri-list'); };
-window.addEventListener('dragenter', e => {
-  if (!isExternalDrag(e)) return; e.preventDefault(); dragDepth++;
-  const a = currentAlbumId() && S.albums.get(currentAlbumId());
-  $('#dropSub').textContent = (a ? `Ảnh sẽ vào album “${a.name}”` : 'Ảnh sẽ vào Tất cả ảnh') + ' · tài liệu vào trang Tệp';
-  dropEl.classList.add('show');
-});
-window.addEventListener('dragover', e => { if (!isExternalDrag(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-window.addEventListener('dragleave', e => { if (!isExternalDrag(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropEl.classList.remove('show'); });
-window.addEventListener('drop', e => {
-  if (!isExternalDrag(e)) return; e.preventDefault(); dragDepth = 0; dropEl.classList.remove('show');
-  const files = [...e.dataTransfer.files];
-  if (files.length) return enqueueAny(files);
-  // Trang web kia chỉ gửi link → thử tải ảnh về; nếu bị chặn thì hướng dẫn dán
-  const html = e.dataTransfer.getData('text/html') || '', uri = e.dataTransfer.getData('text/uri-list') || '';
-  const url = (html.match(/<img[^>]+src=["']([^"']+)/i)?.[1] || uri.split(/\r?\n/).find(l => l && !l.startsWith('#')) || '').replace(/&amp;/g, '&').trim();
-  const albumId = currentAlbumId();
-  const hint = () => toast('Trang web kia không cho lấy file ảnh. Hãy chuột phải vào ảnh → “Sao chép hình ảnh”, rồi bấm Ctrl+V ở đây.', { ms: 8000 });
-  if (!/^(https?:|data:image\/)/i.test(url)) return hint();
-  fetch(url).then(r => r.ok ? r.blob() : Promise.reject()).then(b => {
-    if (!/^image\//.test(b.type)) throw 0;
-    enqueue([new File([b], 'Ảnh từ web', { type: b.type })], albumId, /^https?:/i.test(url) ? url : null);
-  }).catch(hint);
+const dropEl = $('#drop'); let dropTimer = 0;
+// App không dùng kéo-thả kiểu trình duyệt bên trong trang (sắp xếp ảnh dùng pointer) → tắt hẳn, khỏi lẫn với kéo từ ngoài vào
+document.addEventListener('dragstart', e => e.preventDefault());
+const isExternalDrag = e => { const t = [...(e.dataTransfer?.types || [])]; return t.includes('Files') || t.includes('text/uri-list'); };
+function hideDrop() { clearTimeout(dropTimer); dropEl.classList.remove('show'); }
+/* Lớp phủ hiện khi còn nhận được dragover, tự ẩn khi ngừng (không đếm vào/ra nữa nên không thể kẹt) */
+function onDragOver(e) {
+  if (!isExternalDrag(e)) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+  if (!dropEl.classList.contains('show')) {
+    const a = currentAlbumId() && S.albums.get(currentAlbumId());
+    $('#dropSub').textContent = (a ? `Ảnh sẽ vào album “${a.name}”` : 'Ảnh sẽ vào Tất cả ảnh') + ' · tài liệu vào trang Tệp';
+    dropEl.classList.add('show');
+  }
+  clearTimeout(dropTimer); dropTimer = setTimeout(hideDrop, 900);
+}
+window.addEventListener('dragenter', onDragOver);
+window.addEventListener('dragover', onDragOver);
+window.addEventListener('dragleave', e => { if (e.target === dropEl) hideDrop(); });   // rời khỏi cửa sổ
+/* Lấy file từ dữ liệu thả; nếu thả cả thư mục thì đi hết các thư mục con (tối đa 500 file) */
+async function filesFromDrop(dt) {
+  const plain = [...(dt.files || [])];
+  let entries = [];
+  try { entries = [...(dt.items || [])].filter(i => i.kind === 'file').map(i => i.webkitGetAsEntry?.()).filter(Boolean); } catch {}
+  if (!entries.some(en => en.isDirectory)) return { files: plain, hadDir: false };
+  const out = [];
+  const walk = async en => {
+    if (out.length >= 500) return;
+    if (en.isFile) { const f = await new Promise(res => en.file(res, () => res(null))); if (f) out.push(f); return; }
+    const rd = en.createReader();
+    for (;;) { const batch = await new Promise(res => rd.readEntries(res, () => res([]))); if (!batch.length) break; for (const c of batch) await walk(c); }
+  };
+  for (const en of entries) await walk(en);
+  return { files: out, hadDir: true };
+}
+window.addEventListener('drop', async e => {
+  if (!isExternalDrag(e)) return; e.preventDefault(); hideDrop();
+  const dt = e.dataTransfer, url = imageUrlFrom(dt, false);   // phải đọc ngay, sau khi chờ là dữ liệu thả bị xóa
+  const { files, hadDir } = await filesFromDrop(dt);
+  if (takeIn(files, url)) return;
+  if (hadDir) toast('Thư mục vừa thả không có ảnh hay tài liệu nào'); else copyHint();
 });
 
 /* =========================================================================
