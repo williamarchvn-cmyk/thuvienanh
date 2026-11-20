@@ -286,6 +286,16 @@ body.selecting .toasts{bottom:88px}
   .viewer.info .v-next{right:calc(14px + 380px + 14px)}
 }
 @media (prefers-reduced-motion:reduce){.v-panel,.v-info-btn,.v-info-btn .ic,.v-next{transition:none!important}}
+/* Phóng to ảnh (v1.4.0): ảnh dùng transform nên không đổi bố cục; thanh nhỏ ở góc dưới trái chỉ hiện khi đang phóng */
+.v-stage{user-select:none;-webkit-user-select:none}
+.viewer.zoomed .v-stage{cursor:grab}
+.viewer.zoomed .v-stage.panning{cursor:grabbing}
+.v-zoom{position:absolute;z-index:3;left:16px;bottom:calc(14px + var(--safe-b));height:48px;padding:0 6px;border-radius:24px;display:none;align-items:center;gap:2px;color:#fff;background:linear-gradient(145deg,rgba(255,255,255,.26),rgba(255,255,255,.07));-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 24px rgba(0,0,0,.35)}
+.viewer.zoomed .v-zoom{display:flex}
+.v-zoom button{min-width:38px;height:38px;padding:0 6px;border-radius:19px;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff}
+.v-zoom button:hover{background:rgba(255,255,255,.18)}
+.v-zoom button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.v-zoom .v-zoom-pct{min-width:58px;font-variant-numeric:tabular-nums}
 .v-actions{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap}
 .f-label{display:block;font-size:13px;font-weight:700;color:#444;margin:18px 0 6px}
 .f-in{width:100%;border:1px solid #d6d6d6;border-radius:12px;padding:10px 12px;outline:0;font-size:15px;background:#fff;resize:vertical}
@@ -372,6 +382,8 @@ body.selecting .toasts{bottom:88px}
   .v-close{top:12px;left:12px}
   .v-count{top:18px}
   .v-info-btn{right:10px;bottom:calc(10px + var(--safe-b))}
+  .v-zoom{left:10px;bottom:calc(10px + var(--safe-b))}
+  .viewer.info .v-zoom{display:none}
   .v-panel{left:10px;right:10px;width:auto;max-width:none;bottom:calc(10px + 48px + 10px + var(--safe-b));max-height:min(72vh,calc(100% - 96px));padding:16px 16px 24px}
   .v-actions .v-hide{display:none}
   .sheet-bg{place-items:end stretch}
@@ -456,7 +468,7 @@ body.selecting .toasts{bottom:88px}
 
 <script>
 /* =========================================================================
-   THƯ VIỆN ẢNH — v1.3.1
+   THƯ VIỆN ẢNH — v1.4.0
    Chưa điền SUPABASE_URL/KEY trong CONFIG → tự chạy dữ liệu giả lập.
    - Toàn bộ dữ liệu đi qua đối tượng `api`. Giai đoạn backend chỉ cần viết lại
      các hàm trong `api` bằng Supabase (cùng tên, cùng dữ liệu vào/ra).
@@ -541,6 +553,8 @@ const P = {
   eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   up: '<path d="M12 19V6M6 11l6-6 6 6"/><path d="M5 21h14"/>',
   down: '<path d="M12 5v13M6 13l6 6 6-6"/><path d="M5 3h14"/>',
+  zoomIn: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M8 11h6M11 8v6"/>',
+  zoomOut: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M8 11h6"/>',
 };
 const icon = (n, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
 
@@ -1526,7 +1540,7 @@ function mountSettings() {
     <div class="set-row"><button class="btn" data-act="mock500">Thêm 500 ảnh mẫu</button><button class="btn" data-act="mockremote">Giả lập ảnh mới từ thiết bị khác</button><button class="btn" data-act="mockreset">Đặt lại dữ liệu mẫu</button></div>
     <label class="switch"><input type="checkbox" id="mFail"> Giả lập lỗi tải lên (30% ảnh bị lỗi)</label>
     <label class="switch"><input type="checkbox" id="mFull"> Giả lập kho gần đầy (+900 MB)</label></div>` : ''}
-  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.3.1 · Supabase'}</div>`;
+  <div class="sub" style="margin-top:20px">Thư viện ảnh · ${CONFIG.USE_MOCK ? 'v1.0 · đang chạy dữ liệu giả lập (chưa điền Supabase)' : 'v1.4.0 · Supabase'}</div>`;
   if (CONFIG.USE_MOCK) {
     const f = $('#mFail'), u = $('#mFull');
     f.checked = mockFlags.failRate > 0; u.checked = S.extraBytes > 0;
@@ -1904,7 +1918,7 @@ async function backupFlow(btn) {
 /* =========================================================================
    XEM ẢNH LỚN
    ========================================================================= */
-const V = { open: false, info: false, list: [], idx: 0, id: null };
+const V = { open: false, info: false, list: [], idx: 0, id: null, z: { s: 1, x: 0, y: 0 }, zid: null, touching: 0 };   // z: phóng to (s = hệ số, x/y = dịch chuyển px)
 const viewerEl = $('#viewer');
 const savedFlash = debounce(() => flashSaved(''), 1800);
 
@@ -1915,7 +1929,7 @@ function openViewer(id) {
   V.idx = V.list.indexOf(id); V.id = id;
   if (!V.open) {
     V.open = true; viewerEl.classList.add('open'); document.body.classList.add('noscroll');
-    pushLayer(() => { V.open = false; V.info = false; viewerEl.classList.remove('open', 'info'); viewerEl.innerHTML = ''; document.body.classList.remove('noscroll'); });
+    pushLayer(() => { V.open = false; V.info = false; V.z = { s: 1, x: 0, y: 0 }; V.zid = null; V.touching = 0; viewerEl.classList.remove('open', 'info', 'zoomed'); viewerEl.innerHTML = ''; document.body.classList.remove('noscroll'); });
   }
   renderViewer();
 }
@@ -1938,6 +1952,7 @@ function viewerAfterRemove() {
 }
 function refreshViewer() {
   if (!alive(S.photos.get(V.id))) return viewerAfterRemove();
+  if (V.touching) return;   // đang chụm/kéo ảnh: vẽ lại lúc này sẽ làm đứt cử chỉ
   if (viewerEl.contains(document.activeElement) && document.activeElement.matches('input,textarea')) { renderVTags(); renderVAlbums(); return; }
   renderViewer(true);
 }
@@ -1974,6 +1989,11 @@ function renderViewer(keepImage) {
     <div class="v-saved">${esc(V.status || '')}</div>
     <div class="v-info">${p.width} × ${p.height} px · ${fmtBytes(p.size_bytes)}<br>Tải lên ${fmtDate(p.created_at)}${p.original_name ? '<br>' + esc(p.original_name) : ''}</div>
   </div>
+  <div class="v-zoom" role="group" aria-label="Phóng to ảnh">
+    <button data-v="zoom-out" title="Thu nhỏ (−)" aria-label="Thu nhỏ">${icon('zoomOut', 20)}</button>
+    <button class="v-zoom-pct" data-v="zoom-reset" title="Về vừa khung (0)" aria-label="Về vừa khung">100%</button>
+    <button data-v="zoom-in" title="Phóng to (+)" aria-label="Phóng to">${icon('zoomIn', 20)}</button>
+  </div>
   <button class="v-info-btn" data-v="info" aria-controls="vPanel" aria-expanded="${!!V.info}" aria-label="${V.info ? 'Ẩn thông tin ảnh' : 'Xem thông tin ảnh'}"><span class="ic i-info">${icon('info', 22)}</span><span class="ic i-x">${icon('x', 22)}</span></button>`;
   viewerEl.classList.toggle('info', !!V.info);
   if (keep) { viewerEl.scrollTop = scroll; $('.v-panel', viewerEl).scrollTop = pscroll; }
@@ -1987,6 +2007,8 @@ function renderViewer(keepImage) {
   updateSrcLink();
   renderVTags(); renderVAlbums();
   bindViewerInputs(p.id);
+  if (V.zid !== p.id) { V.z = { s: 1, x: 0, y: 0 }; V.zid = p.id; }   // ảnh khác → về 100%
+  applyZoom(true);
   bindSwipe();
 }
 function updateSrcLink() {
@@ -2051,6 +2073,9 @@ function bindViewerInputs(id) {
     if (t.dataset.v === 'next') return stepViewer(1);
     if (t.dataset.v === 'info') return setInfo(!V.info);
     if (t.dataset.v === 'info-hide') return setInfo(false);
+    if (t.dataset.v === 'zoom-in') return zoomStep(1.5);
+    if (t.dataset.v === 'zoom-out') return zoomStep(1 / 1.5);
+    if (t.dataset.v === 'zoom-reset') return zoomReset();
     if (t.dataset.v === 'album') return addToAlbumFlow([id]);
     if (t.dataset.v === 'download') return downloadPhoto(id);
     if (t.dataset.v === 'delete') return deleteFlow([id]);
@@ -2062,17 +2087,93 @@ function bindViewerInputs(id) {
   };
 }
 
-/* Vuốt trên điện thoại: trái/phải = ảnh khác, xuống = đóng, lên = xem chi tiết */
+/* =========================================================================
+   PHÓNG TO ẢNH (v1.4.0)
+   - Máy tính: lăn chuột (theo vị trí con trỏ), bấm đúp, phím + − 0, kéo chuột để di chuyển khi đang phóng, Esc = về 100%.
+   - Điện thoại: chụm 2 ngón, chạm đúp, kéo 1 ngón để di chuyển khi đang phóng.
+   - Đang phóng to thì tạm tắt vuốt chuyển ảnh / vuốt đóng (tránh vuốt nhầm); về 100% là vuốt như cũ.
+   - Mỗi ảnh mới luôn mở ở 100%. Trạng thái nằm ở V.z nên vẽ lại khung xem không làm mất mức phóng.
+   ========================================================================= */
+const Z_MAX = 6, Z_DBL = 2.5;
+const zoomed = () => V.z.s > 1.01;
+/* Kích thước khung xem và phần ảnh thật sự hiện ra (ảnh được co vừa khung, giữ tỉ lệ) */
+function zoomBox() {
+  const st = $('#vStage', viewerEl), p = S.photos.get(V.id); if (!st || !p) return null;
+  const W = st.clientWidth, H = st.clientHeight, ar = (p.width / p.height) || 1;
+  const iw = Math.min(W, H * ar);
+  return { W, H, iw, ih: iw / ar };
+}
+/* Giữ ảnh không trượt ra khỏi khung: phần ảnh nhỏ hơn khung thì nằm giữa, lớn hơn thì chỉ kéo tới mép */
+function clampZoom(z, soft) {
+  const b = zoomBox(); if (!b) return z;
+  const s = Math.min(Z_MAX, Math.max(soft ? .7 : 1, z.s));
+  const mx = Math.max(0, (b.iw * s - b.W) / 2), my = Math.max(0, (b.ih * s - b.H) / 2);
+  return { s, x: Math.min(mx, Math.max(-mx, z.x)), y: Math.min(my, Math.max(-my, z.y)) };
+}
+/* instant = đặt ngay không hiệu ứng (dùng sau khi vẽ lại khung xem) */
+function applyZoom(instant) {
+  const img = $('.v-img', viewerEl); if (!img) return;
+  const z = V.z, tf = z.s === 1 && !z.x && !z.y ? '' : `translate(${z.x}px,${z.y}px) scale(${z.s})`;
+  if (instant) { img.style.transition = 'none'; img.style.transform = tf; void img.offsetWidth; img.style.transition = ''; }
+  else img.style.transform = tf;
+  viewerEl.classList.toggle('zoomed', zoomed());
+  const lab = $('.v-zoom-pct', viewerEl); if (lab) lab.textContent = Math.round(z.s * 100) + '%';
+}
+/* Phóng/thu về hệ số ns, giữ nguyên điểm ảnh đang nằm dưới (cx, cy) trên màn hình */
+function zoomAt(ns, cx, cy) {
+  const st = $('#vStage', viewerEl); if (!st) return;
+  ns = Math.min(Z_MAX, Math.max(1, ns)); if (ns < 1.05) ns = 1;
+  const r = st.getBoundingClientRect(), px = cx - (r.left + r.width / 2), py = cy - (r.top + r.height / 2), z = V.z, k = ns / z.s;
+  V.z = clampZoom({ s: ns, x: px - (px - z.x) * k, y: py - (py - z.y) * k });
+  applyZoom();
+}
+function zoomStep(f) { const st = $('#vStage', viewerEl); if (!st) return; const r = st.getBoundingClientRect(); zoomAt(V.z.s * f, r.left + r.width / 2, r.top + r.height / 2); }
+function zoomReset() { V.z = { s: 1, x: 0, y: 0 }; applyZoom(); }
+window.addEventListener('resize', () => { if (V.open && zoomed()) { V.z = clampZoom(V.z); applyZoom(); } });
+
+/* Cử chỉ trên khung xem: vuốt (100%), chụm, kéo, chạm đúp, lăn chuột */
 function bindSwipe() {
   const stage = $('#vStage', viewerEl), img = $('.v-img', viewerEl);
-  let s = null, moved = false;
+  const ptrs = new Map();   // các ngón / chuột đang chạm: id -> {x, y}
+  let s = null, pan = null, pinch = null, down = null, lastTap = null, moved = false;
+  V.touching = 0;
   stage.onclick = e => { if (moved) { moved = false; return; } if (V.info && !e.target.closest('.v-btn')) setInfo(false); };
+  stage.onwheel = e => { e.preventDefault(); zoomAt(V.z.s * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 16 : 1) * (e.ctrlKey ? .012 : .002)), e.clientX, e.clientY); };
   stage.onpointerdown = e => {
-    if (e.pointerType === 'mouse' || e.target.closest('.v-btn')) return;
-    s = { x: e.clientX, y: e.clientY, axis: null, dx: 0, dy: 0 }; moved = false;
+    if (e.target.closest('.v-btn') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    try { stage.setPointerCapture(e.pointerId); } catch {}
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); V.touching = ptrs.size; moved = false;
+    if (ptrs.size === 1) down = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), multi: false };
+    else if (down) down.multi = true;
+    if (ptrs.size === 2) {   // 2 ngón: chụm để phóng / thu
+      s = null; pan = null; stage.classList.remove('panning'); viewerEl.style.background = '';
+      const [a, b] = [...ptrs.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, z: { ...V.z } };
+      img.style.transition = 'none'; img.style.opacity = ''; applyZoom(); return;
+    }
+    if (ptrs.size > 2) return;
     img.style.transition = 'none';
+    if (zoomed()) { pan = { x: e.clientX, y: e.clientY, z: { ...V.z } }; stage.classList.add('panning'); return; }   // đang phóng: kéo = di chuyển ảnh
+    if (e.pointerType === 'mouse') return;   // chuột ở 100% không vuốt
+    s = { x: e.clientX, y: e.clientY, axis: null, dx: 0, dy: 0 };
   };
   stage.onpointermove = e => {
+    const pt = ptrs.get(e.pointerId); if (!pt) return;
+    pt.x = e.clientX; pt.y = e.clientY;
+    if (pinch) {
+      if (ptrs.size < 2) return;
+      const [a, b] = [...ptrs.values()], r = stage.getBoundingClientRect();
+      const d = Math.hypot(a.x - b.x, a.y - b.y) || 1, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const z0 = pinch.z, ns = Math.min(Z_MAX, Math.max(.7, z0.s * d / pinch.d)), k = ns / z0.s, cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      // giữ điểm giữa 2 ngón đứng yên trên ảnh, đồng thời ảnh đi theo khi 2 ngón cùng trượt
+      V.z = clampZoom({ s: ns, x: (mx - cx) - ((pinch.mx - cx) - z0.x) * k, y: (my - cy) - ((pinch.my - cy) - z0.y) * k }, true);
+      moved = true; applyZoom(); return;
+    }
+    if (pan) {
+      const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+      if (Math.hypot(dx, dy) > 5) moved = true;
+      V.z = clampZoom({ s: pan.z.s, x: pan.z.x + dx, y: pan.z.y + dy }); applyZoom(); return;
+    }
     if (!s) return;
     s.dx = e.clientX - s.x; s.dy = e.clientY - s.y;
     if (Math.hypot(s.dx, s.dy) > 10) moved = true;
@@ -2083,8 +2184,7 @@ function bindSwipe() {
       viewerEl.style.background = `rgba(14,14,14,${Math.max(.3, 1 - s.dy / 500)})`;
     }
   };
-  const end = () => {
-    if (!s) return;
+  const endSwipe = () => {
     const { axis, dx, dy } = s; s = null;
     img.style.transition = ''; viewerEl.style.background = '';
     if (axis === 'x' && Math.abs(dx) > 60) {
@@ -2095,7 +2195,31 @@ function bindSwipe() {
     if (axis === 'y' && dy < -60) setInfo(true);
     img.style.transform = '';
   };
-  stage.onpointerup = end; stage.onpointercancel = end;
+  const end = e => {
+    if (!ptrs.delete(e.pointerId)) return;
+    V.touching = ptrs.size;
+    try { stage.releasePointerCapture(e.pointerId); } catch {}
+    const d = down && down.id === e.pointerId ? down : null; if (d) down = null;
+    if (pinch) {
+      if (ptrs.size >= 2) return;
+      pinch = null;
+      V.z = clampZoom(V.z); if (V.z.s < 1.05) V.z = { s: 1, x: 0, y: 0 };   // thu gần về vừa khung thì dính lại 100%
+      img.style.transition = ''; applyZoom();
+      if (ptrs.size === 1 && zoomed()) { const [r] = [...ptrs.values()]; pan = { x: r.x, y: r.y, z: { ...V.z } }; img.style.transition = 'none'; stage.classList.add('panning'); }   // còn 1 ngón: kéo tiếp, không bị giật
+      return;
+    }
+    if (pan) { pan = null; stage.classList.remove('panning'); }
+    else if (s) endSwipe();
+    if (ptrs.size) return;
+    img.style.transition = '';
+    // chạm đúp / bấm đúp: 100% ↔ 250% tại điểm chạm
+    if (d && !d.multi && e.type === 'pointerup' && performance.now() - d.t < 350 && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 10) {
+      const now = performance.now();
+      if (lastTap && now - lastTap.t < 350 && Math.hypot(lastTap.x - d.x, lastTap.y - d.y) < 40) { lastTap = null; zoomed() ? zoomReset() : zoomAt(Z_DBL, e.clientX, e.clientY); }
+      else lastTap = { x: d.x, y: d.y, t: now };
+    }
+  };
+  stage.onpointerup = end; stage.onpointercancel = end; stage.onlostpointercapture = end;
 }
 
 /* =========================================================================
@@ -2502,8 +2626,13 @@ document.addEventListener('keydown', e => {
   const typing = e.target.matches?.('input,textarea');
   if (layers.slice(-1)[0]?.isSheet) { if (e.key === 'Escape') popLayer(); return; }
   if (V.open) {
-    if (e.key === 'Escape') { if (typing) e.target.blur(); else if (layers.length === 1) { if (V.info) setInfo(false); else closeViewer(); } return; }
+    if (e.key === 'Escape') { if (typing) e.target.blur(); else if (layers.length === 1) { if (V.info) setInfo(false); else if (zoomed()) zoomReset(); else closeViewer(); } return; }
     if (!typing && (e.key === 'i' || e.key === 'I')) return setInfo(!V.info);
+    if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey) {   // phóng to: + (hoặc =), thu nhỏ: −, về vừa khung: 0
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); return zoomStep(1.4); }
+      if (e.key === '-' || e.key === '_') { e.preventDefault(); return zoomStep(1 / 1.4); }
+      if (e.key === '0') { e.preventDefault(); return zoomReset(); }
+    }
     if (!typing && e.key === 'ArrowRight') return stepViewer(1);
     if (!typing && e.key === 'ArrowLeft') return stepViewer(-1);
   }
